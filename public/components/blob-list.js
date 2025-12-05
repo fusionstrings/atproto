@@ -7,7 +7,7 @@ import { blobs, blobMetadata, isLoadingBlobs } from '../js/state.js';
 import { pinService } from '../js/pin-service.js';
 import { showToast } from './toast-notification.js';
 import { icons } from '../js/icons.js';
-import { $, $$, cloneTemplate, formatBytes } from '../js/utils.js';
+import { $, $$, cloneTemplate, formatBytes, hydrateIcons } from '../js/utils.js';
 
 export class BlobList extends HTMLElement {
     constructor() {
@@ -23,7 +23,7 @@ export class BlobList extends HTMLElement {
     connectedCallback() {
         this.attachShadow({ mode: 'open' });
         cloneTemplate('blob-list-template', this.shadowRoot);
-        this.injectIcons();
+        hydrateIcons(this.shadowRoot);
         this.setupEventListeners();
         
         this.cleanup = effect(() => {
@@ -32,23 +32,6 @@ export class BlobList extends HTMLElement {
             const ___ = isLoadingBlobs.value;
             this.updateList();
         });
-    }
-
-    injectIcons() {
-        const iconMap = {
-            '#searchIcon': icons.search,
-            '#gridBtn': icons.grid,
-            '#listBtn': icons.list,
-            '#refreshBtn': icons.refresh,
-        };
-        
-        Object.entries(iconMap).forEach(([sel, icon]) => {
-            const el = $(this.shadowRoot, sel);
-            if (el) el.innerHTML = icon;
-        });
-        
-        $(this.shadowRoot, '#selectBtn').innerHTML = `${icons.selectMode} Select`;
-        $(this.shadowRoot, '#bulkDeleteBtn').innerHTML = `${icons.trash} Delete`;
     }
 
     disconnectedCallback() {
@@ -134,7 +117,13 @@ export class BlobList extends HTMLElement {
     exitSelectMode() {
         this.selectMode = false;
         this.selectedItems.clear();
-        $(this.shadowRoot, '#selectBtn').innerHTML = `${icons.selectMode} Select`;
+        const selectBtn = $(this.shadowRoot, '#selectBtn');
+        selectBtn.textContent = '';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'icon-slot';
+        iconSpan.innerHTML = icons.selectMode;
+        selectBtn.appendChild(iconSpan);
+        selectBtn.appendChild(document.createTextNode(' Select'));
         $(this.shadowRoot, '#bulkBar').classList.remove('active');
         this.updateList();
     }
@@ -167,8 +156,13 @@ export class BlobList extends HTMLElement {
         }
 
         const btn = $(this.shadowRoot, '#bulkDeleteBtn');
+        const originalContent = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<div class="spinner spinner-sm"></div> Deleting...';
+        btn.textContent = '';
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner spinner-sm';
+        btn.appendChild(spinner);
+        btn.appendChild(document.createTextNode(' Deleting...'));
 
         let success = 0, failed = 0;
         for (const [_cid, blob] of this.selectedItems) {
@@ -190,7 +184,7 @@ export class BlobList extends HTMLElement {
         }
 
         btn.disabled = false;
-        btn.innerHTML = `${icons.trash} Delete`;
+        btn.innerHTML = originalContent;
     }
 
     getFilteredBlobs() {
@@ -241,16 +235,18 @@ export class BlobList extends HTMLElement {
     }
 
     updateList() {
-        const content = $(this.shadowRoot, '#content');
+        const loadingState = $(this.shadowRoot, '#loadingState');
+        const emptyState = $(this.shadowRoot, '#emptyState');
+        const blobsContainer = $(this.shadowRoot, '#blobsContainer');
         const loading = isLoadingBlobs.value;
 
+        // Hide all states first
+        loadingState.hidden = true;
+        emptyState.hidden = true;
+        blobsContainer.hidden = true;
+
         if (loading) {
-            content.innerHTML = `
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p>Loading files...</p>
-                </div>
-            `;
+            loadingState.hidden = false;
             return;
         }
 
@@ -264,6 +260,7 @@ export class BlobList extends HTMLElement {
         
         const filteredBlobs = this.getFilteredBlobs();
 
+        // Update filter counts
         const counts = {
             all: allBlobs.length,
             images: allBlobs.filter(b => b.mimeType?.startsWith('image/')).length,
@@ -275,59 +272,47 @@ export class BlobList extends HTMLElement {
             }).length,
         };
 
-        $(this.shadowRoot, '#filterTabs').innerHTML = `
-            <button class="filter-tab ${this.filterType === 'all' ? 'active' : ''}" data-filter="all">All<span class="count">${counts.all}</span></button>
-            <button class="filter-tab ${this.filterType === 'images' ? 'active' : ''}" data-filter="images">Images<span class="count">${counts.images}</span></button>
-            <button class="filter-tab ${this.filterType === 'videos' ? 'active' : ''}" data-filter="videos">Videos<span class="count">${counts.videos}</span></button>
-            <button class="filter-tab ${this.filterType === 'documents' ? 'active' : ''}" data-filter="documents">Docs<span class="count">${counts.documents}</span></button>
-            <button class="filter-tab ${this.filterType === 'other' ? 'active' : ''}" data-filter="other">Other<span class="count">${counts.other}</span></button>
-        `;
+        $(this.shadowRoot, '#countAll').textContent = counts.all;
+        $(this.shadowRoot, '#countImages').textContent = counts.images;
+        $(this.shadowRoot, '#countVideos').textContent = counts.videos;
+        $(this.shadowRoot, '#countDocs').textContent = counts.documents;
+        $(this.shadowRoot, '#countOther').textContent = counts.other;
 
         $(this.shadowRoot, '#countStat').textContent = filteredBlobs.length;
         const totalSize = filteredBlobs.reduce((sum, b) => sum + (b.size || 0), 0);
         $(this.shadowRoot, '#sizeStat').textContent = formatBytes(totalSize);
 
         if (allBlobs.length === 0) {
-            content.innerHTML = `
-                <div class="empty-state">
-                    ${icons.package}
-                    <h3>No files yet</h3>
-                    <p>Upload your first file to get started</p>
-                </div>
-            `;
+            $(this.shadowRoot, '#emptyIcon').innerHTML = icons.package;
+            $(this.shadowRoot, '#emptyTitle').textContent = 'No files yet';
+            $(this.shadowRoot, '#emptyText').textContent = 'Upload your first file to get started';
+            emptyState.hidden = false;
             return;
         }
 
         if (filteredBlobs.length === 0) {
-            content.innerHTML = `
-                <div class="empty-state">
-                    ${icons.search}
-                    <h3>No matches</h3>
-                    <p>Try adjusting your search or filters</p>
-                </div>
-            `;
+            $(this.shadowRoot, '#emptyIcon').innerHTML = icons.search;
+            $(this.shadowRoot, '#emptyTitle').textContent = 'No matches';
+            $(this.shadowRoot, '#emptyText').textContent = 'Try adjusting your search or filters';
+            emptyState.hidden = false;
             return;
         }
 
-        const viewClass = this.viewMode === 'grid' ? 'blobs-grid' : 'blobs-list';
-        content.innerHTML = `
-            <div class="${viewClass}">
-                ${filteredBlobs.map(blob => `
-                    <blob-item 
-                        cid="${blob.cid}" 
-                        mimetype="${blob.mimeType || 'application/octet-stream'}" 
-                        size="${blob.size || 0}"
-                        filename="${blob.filename || ''}"
-                        rkey="${blob.rkey || ''}"
-                        ${this.selectMode ? 'selectable' : ''}
-                        ${this.selectedItems.has(blob.cid) ? 'selected' : ''}
-                    ></blob-item>
-                `).join('')}
-            </div>
-        `;
-
-        if (this.selectMode) {
-            content.querySelectorAll('blob-item').forEach(item => {
+        // Render blob items
+        blobsContainer.className = this.viewMode === 'grid' ? 'blobs-grid' : 'blobs-list';
+        blobsContainer.textContent = '';
+        
+        filteredBlobs.forEach(blob => {
+            const item = document.createElement('blob-item');
+            item.setAttribute('cid', blob.cid);
+            item.setAttribute('mimetype', blob.mimeType || 'application/octet-stream');
+            item.setAttribute('size', blob.size || 0);
+            item.setAttribute('filename', blob.filename || '');
+            item.setAttribute('rkey', blob.rkey || '');
+            if (this.selectMode) item.setAttribute('selectable', '');
+            if (this.selectedItems.has(blob.cid)) item.setAttribute('selected', '');
+            
+            if (this.selectMode) {
                 item.addEventListener('selection-change', (e) => {
                     const { cid, selected, rkey, filename, size } = e.detail;
                     if (selected) {
@@ -337,7 +322,11 @@ export class BlobList extends HTMLElement {
                     }
                     this.updateSelectionUI();
                 });
-            });
-        }
+            }
+            
+            blobsContainer.appendChild(item);
+        });
+        
+        blobsContainer.hidden = false;
     }
 }

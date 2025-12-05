@@ -3,7 +3,7 @@
  */
 
 import { auth } from '../js/state.js';
-import { getCdnUrl, getRawBlobUrl, formatBytes, copyToClipboard, escapeHtml, $, cloneTemplate } from '../js/utils.js';
+import { getCdnUrl, getRawBlobUrl, formatBytes, copyToClipboard, $, cloneTemplate, hydrateIcons } from '../js/utils.js';
 import { showToast } from './toast-notification.js';
 import { icons } from '../js/icons.js';
 
@@ -17,25 +17,51 @@ export class PreviewModal extends HTMLElement {
     connectedCallback() {
         this.attachShadow({ mode: 'open' });
         cloneTemplate('preview-modal-template', this.shadowRoot);
-        
-        // Close button icon
-        const closeBtn = $(this.shadowRoot, '#closeBtn');
-        if (closeBtn) closeBtn.innerHTML = icons.x;
+        hydrateIcons(this.shadowRoot);
+        this.setupEventListeners();
+    }
 
-        // Close button
+    setupEventListeners() {
         $(this.shadowRoot, '#closeBtn').addEventListener('click', () => this.close());
-
-        // Click backdrop to close
         $(this.shadowRoot, '#backdrop').addEventListener('click', () => this.close());
 
-        // Escape key to close
         this._keyHandler = (e) => {
             if (e.key === 'Escape' && this.isOpen) this.close();
         };
         document.addEventListener('keydown', this._keyHandler);
-
-        // Listen for preview events from blob items
         document.addEventListener('preview', (e) => this.open(e.detail));
+
+        $(this.shadowRoot, '#copyCidBtn').addEventListener('click', async () => {
+            if (this.currentBlob) {
+                await copyToClipboard(this.currentBlob.cid);
+                showToast('CID copied!', 'success');
+            }
+        });
+
+        $(this.shadowRoot, '#copyLinkBtn').addEventListener('click', async () => {
+            if (this.currentBlob) {
+                const did = auth.value.userDid;
+                await copyToClipboard(getCdnUrl(did, this.currentBlob.cid));
+                showToast('Link copied!', 'success');
+            }
+        });
+
+        $(this.shadowRoot, '#downloadBtn').addEventListener('click', () => {
+            if (this.currentBlob) {
+                const did = auth.value.userDid;
+                const link = document.createElement('a');
+                link.href = getRawBlobUrl(did, this.currentBlob.cid);
+                link.download = this.currentBlob.filename || `blob-${this.currentBlob.cid.substring(0, 8)}`;
+                link.click();
+            }
+        });
+
+        $(this.shadowRoot, '#openTabBtn').addEventListener('click', () => {
+            if (this.currentBlob) {
+                const did = auth.value.userDid;
+                globalThis.open(getCdnUrl(did, this.currentBlob.cid), '_blank');
+            }
+        });
     }
 
     disconnectedCallback() {
@@ -55,6 +81,14 @@ export class PreviewModal extends HTMLElement {
         this.classList.remove('open');
         document.body.style.overflow = '';
         this.currentBlob = null;
+        this.hideAllPreviews();
+    }
+
+    hideAllPreviews() {
+        ['#imagePreview', '#videoPreview', '#audioPreview', '#textPreview', '#placeholder', '#loadingState'].forEach(sel => {
+            const el = $(this.shadowRoot, sel);
+            if (el) el.hidden = true;
+        });
     }
 
     renderContent() {
@@ -64,6 +98,7 @@ export class PreviewModal extends HTMLElement {
         const did = auth.value.userDid;
         const cdnUrl = getCdnUrl(did, cid);
         const rawUrl = getRawBlobUrl(did, cid);
+
         const isImage = mimeType?.startsWith('image/');
         const isVideo = mimeType?.startsWith('video/');
         const isAudio = mimeType?.startsWith('audio/');
@@ -74,66 +109,40 @@ export class PreviewModal extends HTMLElement {
                        mimeType?.includes('typescript');
 
         const displayName = filename || `blob-${cid.substring(0, 8)}`;
-        $(this.shadowRoot, '#modalTitle').innerHTML = `
-            <span class="modal-filename" title="${displayName}">${displayName}</span>
-            <span class="badge">${mimeType || 'Unknown'}</span>
-            <span class="badge">${formatBytes(size)}</span>
-        `;
 
-        const body = $(this.shadowRoot, '#modalBody');
-        
+        // Update title info
+        $(this.shadowRoot, '#filename').textContent = displayName;
+        $(this.shadowRoot, '#filename').title = displayName;
+        $(this.shadowRoot, '#mimeType').textContent = mimeType || 'Unknown';
+        $(this.shadowRoot, '#fileSize').textContent = formatBytes(size);
+        $(this.shadowRoot, '#cidValue').textContent = cid;
+
+        this.hideAllPreviews();
+
         if (isImage) {
-            body.innerHTML = `<div class="preview-content"><img src="${cdnUrl}" alt="${displayName}" /></div>`;
+            const preview = $(this.shadowRoot, '#imagePreview');
+            const img = $(this.shadowRoot, '#previewImg');
+            img.src = cdnUrl;
+            img.alt = displayName;
+            preview.hidden = false;
         } else if (isVideo) {
-            body.innerHTML = `<div class="preview-content"><video src="${rawUrl}" controls autoplay></video></div>`;
+            const preview = $(this.shadowRoot, '#videoPreview');
+            const video = $(this.shadowRoot, '#previewVideo');
+            video.src = rawUrl;
+            preview.hidden = false;
         } else if (isAudio) {
-            body.innerHTML = `<div class="preview-content"><audio src="${rawUrl}" controls autoplay></audio></div>`;
+            const preview = $(this.shadowRoot, '#audioPreview');
+            const audio = $(this.shadowRoot, '#previewAudio');
+            audio.src = rawUrl;
+            preview.hidden = false;
         } else if (isText) {
-            body.innerHTML = `<div class="text-preview loading"><span class="loading loading-lg"></span></div>`;
+            $(this.shadowRoot, '#loadingState').hidden = false;
             this.loadTextContent(rawUrl);
         } else {
-            body.innerHTML = `
-                <div class="preview-placeholder">
-                    ${icons.file}
-                    <h3>Preview not available</h3>
-                    <p>This file type cannot be previewed. Use the download button below.</p>
-                </div>
-            `;
+            const placeholder = $(this.shadowRoot, '#placeholder');
+            $(this.shadowRoot, '#placeholderIcon').innerHTML = icons.file;
+            placeholder.hidden = false;
         }
-
-        $(this.shadowRoot, '#modalFooter').innerHTML = `
-            <div class="cid-row">
-                <span class="cid-label">CID:</span>
-                <span class="cid-value">${cid}</span>
-                <button class="btn btn-ghost btn-sm" id="copyCidBtn">${icons.copy}</button>
-            </div>
-            <div class="footer-actions">
-                <button class="btn btn-ghost" id="copyLinkBtn">${icons.link} Copy Link</button>
-                <button class="btn btn-ghost" id="downloadBtn">${icons.download} Download</button>
-                <button class="btn btn-primary" id="openTabBtn">${icons.externalLink} Open in Tab</button>
-            </div>
-        `;
-
-        $(this.shadowRoot, '#copyCidBtn').addEventListener('click', async () => {
-            await copyToClipboard(cid);
-            showToast('CID copied!', 'success');
-        });
-
-        $(this.shadowRoot, '#copyLinkBtn').addEventListener('click', async () => {
-            await copyToClipboard(cdnUrl);
-            showToast('Link copied!', 'success');
-        });
-
-        $(this.shadowRoot, '#downloadBtn').addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.href = rawUrl;
-            link.download = filename || `blob-${cid.substring(0, 8)}`;
-            link.click();
-        });
-
-        $(this.shadowRoot, '#openTabBtn').addEventListener('click', () => {
-            globalThis.open(cdnUrl, '_blank');
-        });
     }
 
     async loadTextContent(url) {
@@ -141,20 +150,22 @@ export class PreviewModal extends HTMLElement {
             const response = await fetch(url);
             const text = await response.text();
             
-            const container = $(this.shadowRoot, '.text-preview');
-            if (container) {
-                container.classList.remove('loading');
-                const displayText = text.length > 100000 
-                    ? text.substring(0, 100000) + '\n\n... (truncated, file too large to display fully)'
-                    : text;
-                container.innerHTML = `<pre>${escapeHtml(displayText)}</pre>`;
-            }
+            $(this.shadowRoot, '#loadingState').hidden = true;
+            const preview = $(this.shadowRoot, '#textPreview');
+            const content = $(this.shadowRoot, '#textContent');
+            
+            const displayText = text.length > 100000 
+                ? text.substring(0, 100000) + '\n\n... (truncated, file too large to display fully)'
+                : text;
+            content.textContent = displayText;
+            preview.hidden = false;
         } catch (error) {
-            const container = $(this.shadowRoot, '.text-preview');
-            if (container) {
-                container.classList.remove('loading');
-                container.innerHTML = `<pre style="color: rgba(255,100,100,0.8);">Failed to load text content: ${error.message}</pre>`;
-            }
+            $(this.shadowRoot, '#loadingState').hidden = true;
+            const preview = $(this.shadowRoot, '#textPreview');
+            const content = $(this.shadowRoot, '#textContent');
+            content.textContent = `Failed to load text content: ${error.message}`;
+            content.style.color = 'rgba(255,100,100,0.8)';
+            preview.hidden = false;
         }
     }
 }

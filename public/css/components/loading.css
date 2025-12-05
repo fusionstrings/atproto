@@ -51,6 +51,10 @@
     gap: var(--space-4);
 }
 
+.loading-state[hidden] {
+    display: none;
+}
+
 .loading-state p {
     font-size: var(--text-sm);
 }

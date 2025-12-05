@@ -6,21 +6,25 @@ import { auth } from '../js/state.js';
 import { pinService } from '../js/pin-service.js';
 import { showToast } from './toast-notification.js';
 import { icons } from '../js/icons.js';
-import { $, cloneTemplate, formatBytes } from '../js/utils.js';
+import { $, cloneTemplate, formatBytes, hydrateIcons } from '../js/utils.js';
 
 export class UploadZone extends HTMLElement {
     connectedCallback() {
         this.attachShadow({ mode: 'open' });
         cloneTemplate('upload-zone-template', this.shadowRoot);
-        
-        // Inject upload icon
-        const iconEl = $(this.shadowRoot, '#uploadIcon');
-        if (iconEl) iconEl.innerHTML = icons.upload;
+        hydrateIcons(this.shadowRoot);
+        this.setupEventListeners();
+    }
 
+    setupEventListeners() {
         const zone = $(this.shadowRoot, '#dropZone');
         const input = $(this.shadowRoot, '#fileInput');
 
-        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('click', (e) => {
+            if (e.target !== input) {
+                input.click();
+            }
+        });
         
         input.addEventListener('change', (e) => {
             this.handleFiles(e.target.files);
@@ -43,6 +47,22 @@ export class UploadZone extends HTMLElement {
         });
     }
 
+    createUploadItem(file) {
+        const itemTemplate = $(this.shadowRoot, '#upload-item-template');
+        const fragment = itemTemplate.content.cloneNode(true);
+        const item = fragment.querySelector('.upload-item');
+        
+        item.id = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        const iconEl = item.querySelector('.upload-item-icon');
+        iconEl.innerHTML = this.getFileIcon(file.type);
+        
+        item.querySelector('.upload-item-name').textContent = file.name;
+        item.querySelector('.upload-item-size').textContent = formatBytes(file.size);
+        
+        return item;
+    }
+
     async handleFiles(files) {
         if (!files || files.length === 0) return;
 
@@ -57,23 +77,11 @@ export class UploadZone extends HTMLElement {
         
         zone.classList.add('uploading');
         progressContainer.style.display = 'block';
-        progressContainer.innerHTML = '';
+        progressContainer.textContent = '';
 
         for (const file of files) {
-            const itemId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            progressContainer.innerHTML += `
-                <div class="upload-item" id="${itemId}">
-                    <div class="upload-item-icon">${this.getFileIcon(file.type)}</div>
-                    <div class="upload-item-info">
-                        <div class="upload-item-name">${file.name}</div>
-                        <div class="upload-item-size">${formatBytes(file.size)}</div>
-                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
-                    </div>
-                    <div class="upload-item-status">
-                        <div class="spinner spinner-sm"></div>
-                    </div>
-                </div>
-            `;
+            const item = this.createUploadItem(file);
+            progressContainer.appendChild(item);
 
             try {
                 if (file.size > 1000000) {
@@ -83,8 +91,7 @@ export class UploadZone extends HTMLElement {
                 const buffer = await file.arrayBuffer();
                 const uint8 = new Uint8Array(buffer);
 
-                const item = $(this.shadowRoot, `#${itemId}`);
-                const progressFill = item?.querySelector('.progress-fill');
+                const progressFill = item.querySelector('.progress-fill');
                 if (progressFill) progressFill.style.width = '50%';
 
                 const response = await agent.uploadBlob(uint8, { encoding: file.type });
@@ -100,20 +107,17 @@ export class UploadZone extends HTMLElement {
 
                 if (progressFill) progressFill.style.width = '100%';
 
-                const statusEl = item?.querySelector('.upload-item-status');
-                if (statusEl) {
-                    statusEl.classList.add('success');
-                    statusEl.innerHTML = icons.check;
-                }
+                const statusEl = item.querySelector('.upload-item-status');
+                statusEl.classList.add('success');
+                statusEl.textContent = '';
+                statusEl.innerHTML = icons.check;
 
             } catch (error) {
                 console.error('Upload failed:', error);
-                const item = $(this.shadowRoot, `#${itemId}`);
-                const statusEl = item?.querySelector('.upload-item-status');
-                if (statusEl) {
-                    statusEl.classList.add('error');
-                    statusEl.innerHTML = icons.x;
-                }
+                const statusEl = item.querySelector('.upload-item-status');
+                statusEl.classList.add('error');
+                statusEl.textContent = '';
+                statusEl.innerHTML = icons.x;
                 showToast(`Failed: ${error.message}`, 'error');
             }
         }
@@ -123,7 +127,7 @@ export class UploadZone extends HTMLElement {
 
         setTimeout(() => {
             progressContainer.style.display = 'none';
-            progressContainer.innerHTML = '';
+            progressContainer.textContent = '';
         }, 3000);
     }
 

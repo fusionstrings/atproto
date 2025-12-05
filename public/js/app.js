@@ -37,6 +37,9 @@ define('blob-item', BlobItem);
 define('preview-modal', PreviewModal);
 define('toast-notification', ToastContainer);
 
+// Track if blobs have been loaded
+let blobsLoaded = false;
+
 /**
  * Set the current view based on auth state
  * Views: 'loading' | 'login' | 'dashboard'
@@ -78,10 +81,16 @@ async function init() {
             updateView('loading');
         } else if (isAuthenticated) {
             updateView('dashboard');
-            // Load blobs when authenticated
-            pinService.loadAllBlobs();
+            // Load blobs when authenticated (only once)
+            if (!blobsLoaded) {
+                blobsLoaded = true;
+                pinService.loadAllBlobs().catch(err => {
+                    console.error('Failed to load blobs:', err);
+                });
+            }
         } else {
             updateView('login');
+            blobsLoaded = false; // Reset on logout
         }
     });
 }

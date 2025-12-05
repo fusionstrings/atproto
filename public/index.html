@@ -245,11 +245,23 @@
         </style>
         <div class="upload-zone" id="dropZone">
             <input type="file" class="file-input" id="fileInput" multiple />
-            <div class="upload-icon" id="uploadIcon"></div>
+            <div class="upload-icon" id="uploadIcon"><span class="icon-slot" data-icon="upload"></span></div>
             <p class="upload-text">Drop files here or click to upload</p>
             <p class="upload-hint">Max 1MB per file</p>
             <div class="upload-progress" id="uploadProgress" style="display: none;"></div>
         </div>
+        <!-- Upload item template -->
+        <template id="upload-item-template">
+            <div class="upload-item">
+                <div class="upload-item-icon"></div>
+                <div class="upload-item-info">
+                    <div class="upload-item-name"></div>
+                    <div class="upload-item-size"></div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                </div>
+                <div class="upload-item-status"><div class="spinner spinner-sm"></div></div>
+            </div>
+        </template>
     </template>
 
     <!-- Blob Item Template -->
@@ -296,13 +308,15 @@
         <div class="blob-card" id="card">
             <div class="select-checkbox" id="checkbox"><span class="icon-slot" data-icon="check"></span></div>
             <div class="thumbnail" id="thumbnail">
+                <img id="thumbnailImg" alt="" loading="lazy" hidden />
+                <div class="thumbnail-icon" id="thumbnailIcon" hidden></div>
                 <div class="preview-overlay">
                     <button class="preview-btn" id="previewBtn"><span class="icon-slot" data-icon="externalLink"></span>Preview</button>
                 </div>
             </div>
             <div class="info">
                 <div class="filename" id="filename"></div>
-                <div class="meta" id="meta"></div>
+                <div class="meta" id="meta"><span id="size"></span><span>•</span><span id="type"></span></div>
                 <div class="cid" id="cid"></div>
             </div>
             <div class="actions">
@@ -336,6 +350,14 @@
             @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
         </style>
         <div id="toasts"></div>
+        <!-- Toast item template for cloning -->
+        <template id="toast-item">
+            <div class="toast">
+                <span class="toast-icon"></span>
+                <span class="toast-message"></span>
+                <button class="toast-close"><span class="icon-slot" data-icon="x"></span></button>
+            </div>
+        </template>
     </template>
 
     <!-- Preview Modal Template -->
@@ -369,11 +391,53 @@
         <div class="modal-backdrop" id="backdrop"></div>
         <div class="modal-container">
             <div class="modal-header">
-                <div class="modal-title" id="modalTitle">Preview</div>
+                <div class="modal-title" id="modalTitle">
+                    <span class="modal-filename" id="filename"></span>
+                    <span class="badge" id="mimeType"></span>
+                    <span class="badge" id="fileSize"></span>
+                </div>
                 <button class="btn btn-ghost" id="closeBtn"><span class="icon-slot" data-icon="x"></span></button>
             </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-footer" id="modalFooter"></div>
+            <div class="modal-body" id="modalBody">
+                <!-- Image preview -->
+                <div class="preview-content" id="imagePreview" hidden>
+                    <img id="previewImg" alt="" />
+                </div>
+                <!-- Video preview -->
+                <div class="preview-content" id="videoPreview" hidden>
+                    <video id="previewVideo" controls autoplay></video>
+                </div>
+                <!-- Audio preview -->
+                <div class="preview-content" id="audioPreview" hidden>
+                    <audio id="previewAudio" controls autoplay></audio>
+                </div>
+                <!-- Text preview -->
+                <div class="text-preview" id="textPreview" hidden>
+                    <pre id="textContent"></pre>
+                </div>
+                <!-- Placeholder for non-previewable -->
+                <div class="preview-placeholder" id="placeholder" hidden>
+                    <div id="placeholderIcon"></div>
+                    <h3>Preview not available</h3>
+                    <p>This file type cannot be previewed. Use the download button below.</p>
+                </div>
+                <!-- Loading state -->
+                <div class="loading-state" id="loadingState" hidden>
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <div class="cid-row">
+                    <span class="cid-label">CID:</span>
+                    <span class="cid-value" id="cidValue"></span>
+                    <button class="btn btn-ghost btn-sm" id="copyCidBtn"><span class="icon-slot" data-icon="copy"></span></button>
+                </div>
+                <div class="footer-actions">
+                    <button class="btn btn-ghost" id="copyLinkBtn"><span class="icon-slot" data-icon="link"></span> Copy Link</button>
+                    <button class="btn btn-ghost" id="downloadBtn"><span class="icon-slot" data-icon="download"></span> Download</button>
+                    <button class="btn btn-primary" id="openTabBtn"><span class="icon-slot" data-icon="externalLink"></span> Open in Tab</button>
+                </div>
+            </div>
         </div>
     </template>
 
@@ -408,12 +472,14 @@
             .bulk-count { font-weight: 600; color: var(--color-accent); }
             .bulk-actions { display: flex; gap: var(--space-2); margin-left: auto; }
             .blobs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-4); }
-            .blobs-list { display: flex; flex-direction: column; gap: var(--space-2); }
+            .empty-state { text-align: center; padding: var(--space-12); color: var(--color-text-muted); }
+            .empty-state svg { width: 64px; height: 64px; margin-bottom: var(--space-4); opacity: 0.5; }
+            .empty-state h3 { color: var(--color-text-secondary); margin-bottom: var(--space-2); }
         </style>
         <div class="list-container">
             <div class="controls-bar">
                 <div class="search-box">
-                    <span class="search-icon" id="searchIcon"></span>
+                    <span class="search-icon" id="searchIcon"><span class="icon-slot" data-icon="search"></span></span>
                     <input type="text" class="input" id="searchInput" placeholder="Search files..." />
                 </div>
                 <div class="control-group">
@@ -423,14 +489,20 @@
                         <option value="name-asc">Name A-Z</option><option value="name-desc">Name Z-A</option>
                     </select>
                     <div class="view-toggle">
-                        <button class="view-btn active" id="gridBtn" title="Grid view"></button>
-                        <button class="view-btn" id="listBtn" title="List view"></button>
+                        <button class="view-btn active" id="gridBtn" title="Grid view"><span class="icon-slot" data-icon="grid"></span></button>
+                        <button class="view-btn" id="listBtn" title="List view"><span class="icon-slot" data-icon="list"></span></button>
                     </div>
-                    <button class="btn btn-secondary btn-sm" id="selectBtn">Select</button>
-                    <button class="btn btn-ghost btn-sm" id="refreshBtn" title="Refresh"></button>
+                    <button class="btn btn-secondary btn-sm" id="selectBtn"><span class="icon-slot" data-icon="selectMode"></span> Select</button>
+                    <button class="btn btn-ghost btn-sm" id="refreshBtn" title="Refresh"><span class="icon-slot" data-icon="refresh"></span></button>
                 </div>
             </div>
-            <div class="filter-tabs" id="filterTabs"></div>
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab active" data-filter="all">All<span class="count" id="countAll">0</span></button>
+                <button class="filter-tab" data-filter="images">Images<span class="count" id="countImages">0</span></button>
+                <button class="filter-tab" data-filter="videos">Videos<span class="count" id="countVideos">0</span></button>
+                <button class="filter-tab" data-filter="documents">Docs<span class="count" id="countDocs">0</span></button>
+                <button class="filter-tab" data-filter="other">Other<span class="count" id="countOther">0</span></button>
+            </div>
             <div class="stats-bar" id="statsBar">
                 <div class="stat"><span class="stat-value" id="countStat">0</span><span>files</span></div>
                 <div class="stat"><span class="stat-value" id="sizeStat">0 B</span><span>total</span></div>
@@ -440,10 +512,21 @@
                 <div class="bulk-actions">
                     <button class="btn btn-ghost btn-sm" id="selectAllBtn">Select All</button>
                     <button class="btn btn-ghost btn-sm" id="deselectBtn">Clear</button>
-                    <button class="btn btn-danger btn-sm" id="bulkDeleteBtn">Delete</button>
+                    <button class="btn btn-danger btn-sm" id="bulkDeleteBtn"><span class="icon-slot" data-icon="trash"></span> Delete</button>
                 </div>
             </div>
-            <div id="content"><div class="loading-state"><div class="spinner"></div><p>Loading files...</p></div></div>
+            <div id="content">
+                <!-- Loading state -->
+                <div class="loading-state" id="loadingState" hidden><div class="spinner"></div><p>Loading files...</p></div>
+                <!-- Empty state (no files) -->
+                <div class="empty-state" id="emptyState" hidden>
+                    <div id="emptyIcon"></div>
+                    <h3 id="emptyTitle">No files yet</h3>
+                    <p id="emptyText">Upload your first file to get started</p>
+                </div>
+                <!-- Blobs container -->
+                <div id="blobsContainer" hidden></div>
+            </div>
         </div>
     </template>
 </head>

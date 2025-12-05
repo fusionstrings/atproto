@@ -5,8 +5,8 @@
 import { auth } from '../js/state.js';
 import { pinService } from '../js/pin-service.js';
 import { showToast } from './toast-notification.js';
-import { icons, getFileIcon } from '../js/icons.js';
-import { $, cloneTemplate, emit, formatBytes } from '../js/utils.js';
+import { getFileIcon } from '../js/icons.js';
+import { $, cloneTemplate, emit, formatBytes, hydrateIcons } from '../js/utils.js';
 
 export class BlobItem extends HTMLElement {
     static get observedAttributes() {
@@ -24,6 +24,7 @@ export class BlobItem extends HTMLElement {
     connectedCallback() {
         this.attachShadow({ mode: 'open' });
         cloneTemplate('blob-item-template', this.shadowRoot);
+        hydrateIcons(this.shadowRoot);
         this.populateContent();
         this.setupEventListeners();
     }
@@ -45,26 +46,18 @@ export class BlobItem extends HTMLElement {
         const checkbox = $(this.shadowRoot, '#checkbox');
         if (checkbox) {
             checkbox.classList.toggle('checked', this.selected);
-            checkbox.innerHTML = icons.check;
         }
 
-        const thumbnail = $(this.shadowRoot, '#thumbnail');
-        if (thumbnail) {
-            if (isImage && cdnUrl) {
-                thumbnail.insertAdjacentHTML('afterbegin', 
-                    `<img src="${cdnUrl}" alt="${this.filename || 'Image'}" loading="lazy" />`
-                );
-            } else {
-                thumbnail.insertAdjacentHTML('afterbegin',
-                    `<div class="thumbnail-icon">${getFileIcon(this.mimeType)}</div>`
-                );
-            }
-        }
-
-        const previewBtn = $(this.shadowRoot, '#previewBtn');
-        if (previewBtn) {
-            const iconSlot = previewBtn.querySelector('.icon-slot');
-            if (iconSlot) iconSlot.innerHTML = icons.externalLink;
+        const thumbnailImg = $(this.shadowRoot, '#thumbnailImg');
+        const thumbnailIcon = $(this.shadowRoot, '#thumbnailIcon');
+        
+        if (isImage && cdnUrl) {
+            thumbnailImg.src = cdnUrl;
+            thumbnailImg.alt = this.filename || 'Image';
+            thumbnailImg.hidden = false;
+        } else {
+            thumbnailIcon.innerHTML = getFileIcon(this.mimeType);
+            thumbnailIcon.hidden = false;
         }
 
         const filenameEl = $(this.shadowRoot, '#filename');
@@ -73,27 +66,17 @@ export class BlobItem extends HTMLElement {
             filenameEl.title = this.filename || this.cid;
         }
 
-        const metaEl = $(this.shadowRoot, '#meta');
-        if (metaEl) {
-            metaEl.innerHTML = `
-                <span>${formatBytes(this.size)}</span>
-                <span>•</span>
-                <span>${this.getMimeLabel()}</span>
-            `;
-        }
+        const sizeEl = $(this.shadowRoot, '#size');
+        if (sizeEl) sizeEl.textContent = formatBytes(this.size);
+        
+        const typeEl = $(this.shadowRoot, '#type');
+        if (typeEl) typeEl.textContent = this.getMimeLabel();
 
         const cidEl = $(this.shadowRoot, '#cid');
         if (cidEl) {
             cidEl.textContent = this.cid;
             cidEl.title = this.cid;
         }
-
-        // Update action button icons
-        [['#copyBtn', 'copy'], ['#downloadBtn', 'download'], ['#deleteBtn', 'trash']].forEach(([sel, icon]) => {
-            const btn = $(this.shadowRoot, sel);
-            const slot = btn?.querySelector('.icon-slot');
-            if (slot) slot.innerHTML = icons[icon];
-        });
     }
 
     setupEventListeners() {
@@ -153,8 +136,12 @@ export class BlobItem extends HTMLElement {
             if (!confirm(`Delete "${this.filename || 'this file'}"?`)) return;
 
             const btn = $(this.shadowRoot, '#deleteBtn');
+            const originalContent = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner spinner-sm"></div>';
+            btn.textContent = '';
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner spinner-sm';
+            btn.appendChild(spinner);
 
             try {
                 await pinService.deletePin(this.rkey);
@@ -163,7 +150,7 @@ export class BlobItem extends HTMLElement {
             } catch (error) {
                 showToast('Delete failed: ' + error.message, 'error');
                 btn.disabled = false;
-                btn.innerHTML = icons.trash;
+                btn.innerHTML = originalContent;
             }
         });
     }

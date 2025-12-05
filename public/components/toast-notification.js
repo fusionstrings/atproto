@@ -3,12 +3,12 @@
  */
 
 import { icons } from '../js/icons.js';
-import { $, $$, cloneTemplate } from '../js/utils.js';
+import { $, cloneTemplate, hydrateIcons } from '../js/utils.js';
 
 export class ToastContainer extends HTMLElement {
     constructor() {
         super();
-        this.toasts = [];
+        this.toasts = new Map();
     }
 
     connectedCallback() {
@@ -18,8 +18,27 @@ export class ToastContainer extends HTMLElement {
 
     show(message, type = 'info', duration = 4000) {
         const id = Date.now();
-        this.toasts.push({ id, message, type });
-        this.renderToasts();
+        const container = $(this.shadowRoot, '#toasts');
+        const itemTemplate = $(this.shadowRoot, '#toast-item');
+        
+        const toastFragment = itemTemplate.content.cloneNode(true);
+        const toast = toastFragment.querySelector('.toast');
+        
+        toast.classList.add(`toast-${type}`);
+        toast.dataset.id = id;
+        
+        const iconEl = toast.querySelector('.toast-icon');
+        iconEl.innerHTML = icons[type] || icons.info;
+        
+        const messageEl = toast.querySelector('.toast-message');
+        messageEl.textContent = message;
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        hydrateIcons(closeBtn);
+        closeBtn.addEventListener('click', () => this.remove(id));
+        
+        container.appendChild(toast);
+        this.toasts.set(id, toast);
 
         if (duration > 0) {
             setTimeout(() => this.remove(id), duration);
@@ -28,31 +47,14 @@ export class ToastContainer extends HTMLElement {
     }
 
     remove(id) {
-        const toastEl = $(this.shadowRoot, `[data-id="${id}"]`);
-        if (toastEl) {
-            toastEl.classList.add('removing');
+        const toast = this.toasts.get(id);
+        if (toast) {
+            toast.classList.add('removing');
             setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-                this.renderToasts();
+                toast.remove();
+                this.toasts.delete(id);
             }, 300);
         }
-    }
-
-    renderToasts() {
-        const container = $(this.shadowRoot, '#toasts');
-        container.innerHTML = this.toasts.map(toast => `
-            <div class="toast toast-${toast.type}" data-id="${toast.id}">
-                <span class="toast-icon">${icons[toast.type] || icons.info}</span>
-                <span class="toast-message">${toast.message}</span>
-                <button class="toast-close" data-close="${toast.id}">${icons.x}</button>
-            </div>
-        `).join('');
-
-        $$(this.shadowRoot, '.toast-close').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.remove(parseInt(e.currentTarget.dataset.close));
-            });
-        });
     }
 }
 
