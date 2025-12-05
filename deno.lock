@@ -1,16 +1,28 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hono/hono@*": "4.10.7"
+    "jsr:@std/internal@^1.0.10": "1.0.12",
+    "jsr:@std/media-types@*": "1.1.0",
+    "jsr:@std/path@*": "1.1.2"
   },
   "jsr": {
-    "@hono/hono@4.10.7": {
-      "integrity": "b60512559d554f20a945e07a6c5f115e57cbd4c024da9217833c8e7b2c90355d"
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/media-types@1.1.0": {
+      "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
+    },
+    "@std/path@1.1.2": {
+      "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
     }
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hono/hono@*"
+      "jsr:@std/media-types@*",
+      "jsr:@std/path@*"
     ]
   }
 }

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky Blob Store</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.drag-over {
+            border-color: #3abff8;
+            background-color: rgba(58, 191, 248, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-base-200 flex flex-col items-center justify-center p-4">
+
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl font-bold text-primary mb-2 flex items-center gap-2">
+                <i data-lucide="cloud-upload"></i> Bluesky Blob Store
+            </h1>
+            <p class="text-base-content/70 mb-6">Upload any file to your Bluesky PDS and get its Content Identifier (CID).</p>
+
+            <!-- Initial Loading State -->
+            <div id="initLoadingState" class="flex flex-col items-center justify-center py-8 space-y-4">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="animate-pulse">Initializing OAuth client...</p>
+            </div>
+
+            <!-- Login Section -->
+            <div id="loginSection" class="hidden">
+                <div class="alert alert-info mb-4">
+                    <i data-lucide="info"></i>
+                    <div>
+                        <h3 class="font-bold">OAuth Authentication</h3>
+                        <div class="text-xs">Login securely with your Bluesky account. No app passwords needed!</div>
+                    </div>
+                </div>
+
+                <form id="loginForm" class="space-y-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Handle or DID</span>
+                        </label>
+                        <input type="text" name="handle" id="handleInput" placeholder="user.bsky.social" class="input input-bordered w-full" required />
+                        <label class="label">
+                            <span class="label-text-alt">Enter your Bluesky handle, DID, or PDS URL</span>
+                        </label>
+                    </div>
+
+                    <div class="card-actions justify-end mt-6">
+                        <button type="submit" class="btn btn-primary w-full gap-2" id="loginBtn">
+                            <i data-lucide="log-in"></i>
+                            Sign in with OAuth
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Upload Section (Hidden initially) -->
+            <div id="uploadSection" class="hidden space-y-4">
+                <div class="alert alert-success shadow-sm">
+                    <i data-lucide="user-check"></i>
+                    <div>
+                        <h3 class="font-bold">Authenticated as <span id="userHandle"></span></h3>
+                        <div class="text-xs" id="userDid"></div>
+                    </div>
+                    <button class="btn btn-sm btn-ghost gap-1" id="signOutBtn">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        Sign out
+                    </button>
+                </div>
+
+                <form id="uploadForm" class="space-y-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">File</span>
+                        </label>
+                        <div id="dropZone" class="drop-zone border-2 border-dashed border-base-content/20 rounded-box p-10 text-center cursor-pointer hover:border-primary/50">
+                            <input type="file" name="file" id="fileInput" class="hidden" required />
+                            <div class="flex flex-col items-center gap-2 pointer-events-none">
+                                <i data-lucide="file-up" class="w-12 h-12 text-base-content/50"></i>
+                                <p class="text-lg font-medium">Click or drag file to upload</p>
+                                <p class="text-sm text-base-content/50" id="fileName">No file selected</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-actions justify-end mt-6">
+                        <button type="submit" class="btn btn-primary w-full gap-2" id="uploadBtn">
+                            <i data-lucide="upload"></i>
+                            Upload File
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden flex-col items-center justify-center py-8 space-y-4">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="animate-pulse" id="loadingText">Processing...</p>
+            </div>
+
+            <!-- Result Section -->
+            <div id="resultSection" class="hidden mt-6">
+                <div class="alert alert-success shadow-lg">
+                    <i data-lucide="check-circle"></i>
+                    <div>
+                        <h3 class="font-bold">Upload Successful!</h3>
+                        <div class="text-xs">Your file is now stored on your PDS.</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-4 bg-base-200 rounded-box space-y-2">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">CID (Content Identifier)</span>
+                        </label>
+                        <div class="join w-full">
+                            <input type="text" id="cidOutput" class="input input-bordered join-item w-full font-mono text-sm" readonly />
+                            <button type="button" class="btn btn-square join-item" id="copyBtn">
+                                <i data-lucide="copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 text-sm text-base-content/70 font-mono mt-2">
+                        <span id="mimeTypeDisplay"></span>
+                        <span id="sizeDisplay"></span>
+                    </div>
+                    <div class="mt-2">
+                        <a id="blobViewLink" href="#" target="_blank" class="btn btn-sm btn-outline gap-1">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                            View Blob
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blob List Section -->
+            <div id="blobListSection" class="hidden mt-6">
+                <div class="divider">
+                    <i data-lucide="database"></i>
+                    Your Blobs
+                </div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-base-content/70" id="blobCount">0 blobs</span>
+                    <button class="btn btn-sm btn-ghost gap-1" id="refreshBlobsBtn">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                </div>
+
+                <div id="blobList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Blobs will be listed here -->
+                </div>
+                
+                <div id="blobListLoading" class="hidden flex justify-center py-4">
+                    <span class="loading loading-spinner loading-md"></span>
+                </div>
+                
+                <div id="blobListEmpty" class="hidden text-center py-8 text-base-content/50">
+                    <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                    <p>No blobs found. Upload your first file!</p>
+                </div>
+
+                <div id="loadMoreContainer" class="hidden mt-4 text-center">
+                    <button class="btn btn-sm btn-outline" id="loadMoreBtn">Load More</button>
+                </div>
+            </div>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="hidden mt-6">
+                <div class="alert alert-error shadow-lg">
+                    <i data-lucide="alert-circle"></i>
+                    <div>
+                        <h3 class="font-bold">Error</h3>
+                        <div class="text-xs" id="errorMessage">Something went wrong.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        // Import polyfills first, then the OAuth client
+        import 'https://esm.sh/core-js@3.40.0/modules/esnext.symbol.async-dispose';
+        import 'https://esm.sh/core-js@3.40.0/modules/esnext.symbol.dispose';
+        import { BrowserOAuthClient } from 'https://esm.sh/@atproto/oauth-client-browser@0.3.36';
+        import { Agent } from 'https://esm.sh/@atproto/api@0.15.8';
+        
+        lucide.createIcons();
+
+        // Elements
+        const initLoadingState = document.getElementById('initLoadingState');
+        const loginSection = document.getElementById('loginSection');
+        const uploadSection = document.getElementById('uploadSection');
+        const loginForm = document.getElementById('loginForm');
+        const uploadForm = document.getElementById('uploadForm');
+        const handleInput = document.getElementById('handleInput');
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        
+        const loadingState = document.getElementById('loadingState');
+        const loadingText = document.getElementById('loadingText');
+        const resultSection = document.getElementById('resultSection');
+        const errorSection = document.getElementById('errorSection');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let oauthClient = null;
+        let currentSession = null;
+        let currentAgent = null;
+        let blobCursor = null;
+        let userDid = null;
+        let pdsUrl = null;
+
+        // Initialize OAuth Client
+        async function initOAuth() {
+            try {
+                console.log('Initializing OAuth client...');
+                
+                // For localhost development, we use a special client_id URL format
+                // The scope parameter in the URL declares what scopes we might request
+                // transition:generic allows blob uploads and record writes
+                const clientId = 'http://localhost/?scope=' + encodeURIComponent('atproto transition:generic');
+                
+                // Create the OAuth client with loopback configuration for local development
+                oauthClient = new BrowserOAuthClient({
+                    handleResolver: 'https://bsky.social',
+                    // For loopback clients, we pass the special localhost client_id
+                    clientMetadata: {
+                        client_id: clientId,
+                        redirect_uris: ['http://127.0.0.1:8000/'],
+                        scope: 'atproto transition:generic',
+                        grant_types: ['authorization_code', 'refresh_token'],
+                        response_types: ['code'],
+                        application_type: 'native',
+                        token_endpoint_auth_method: 'none',
+                        dpop_bound_access_tokens: true,
+                    },
+                });
+
+                console.log('OAuth client created, calling init()...');
+
+                // Check for existing session or OAuth callback
+                const result = await oauthClient.init();
+                
+                console.log('OAuth init result:', result);
+                
+                if (result) {
+                    const { session, state } = result;
+                    currentSession = session;
+                    
+                    if (state !== undefined) {
+                        console.log('User was redirected back from authorization page');
+                    } else {
+                        console.log('Session restored from storage');
+                    }
+                    
+                    showUploadSection();
+                } else {
+                    console.log('No existing session found');
+                    showLoginSection();
+                }
+            } catch (error) {
+                console.error('OAuth init error:', error);
+                showLoginSection();
+                showError('Failed to initialize OAuth: ' + error.message);
+            }
+        }
+
+        function showLoginSection() {
+            initLoadingState.classList.add('hidden');
+            loginSection.classList.remove('hidden');
+            uploadSection.classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function showUploadSection() {
+            initLoadingState.classList.add('hidden');
+            loginSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            document.getElementById('blobListSection').classList.remove('hidden');
+            
+            // Display user info from the session
+            // The session has .sub (DID) and we can try to get handle from info
+            userDid = currentSession.sub || currentSession.did;
+            document.getElementById('userDid').textContent = userDid;
+            
+            // Try to get handle - might be in session info
+            if (currentSession.info?.handle) {
+                document.getElementById('userHandle').textContent = currentSession.info.handle;
+            } else {
+                document.getElementById('userHandle').textContent = userDid.substring(0, 20) + '...';
+            }
+            
+            // Create agent and get PDS URL
+            currentAgent = new Agent(currentSession);
+            
+            // Get PDS URL from the session's server URL
+            pdsUrl = currentSession.server?.url || currentSession.pdsUrl || 'https://bsky.social';
+            
+            lucide.createIcons();
+            
+            // Load blobs list
+            loadBlobs();
+        }
+
+        // Sign In Handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+            
+            const handle = handleInput.value.trim();
+            if (!handle) {
+                showError('Please enter your handle');
+                return;
+            }
+
+            setLoading(true, 'Redirecting to authorization...');
+
+            try {
+                console.log('Starting sign in for:', handle);
+                // This will redirect the user to the OAuth authorization page
+                // Request the atproto scope plus transition:generic for blob uploads
+                await oauthClient.signIn(handle, {
+                    scope: 'atproto transition:generic',
+                });
+                // Note: This code after signIn won't execute because of redirect
+            } catch (error) {
+                console.error('Sign in error:', error);
+                showError('Sign in failed: ' + error.message);
+                setLoading(false);
+            }
+        });
+
+        // Sign Out Handler
+        document.getElementById('signOutBtn').addEventListener('click', async () => {
+            try {
+                if (currentSession) {
+                    await currentSession.signOut();
+                }
+                currentSession = null;
+                currentAgent = null;
+                userDid = null;
+                pdsUrl = null;
+                blobCursor = null;
+                showLoginSection();
+                resultSection.classList.add('hidden');
+                document.getElementById('blobListSection').classList.add('hidden');
+                uploadForm.reset();
+                updateFileName();
+            } catch (error) {
+                console.error('Sign out error:', error);
+                showError('Sign out failed: ' + error.message);
+            }
+        });
+
+        // Upload Handler
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+            resultSection.classList.add('hidden');
+            setLoading(true, 'Uploading to AT Protocol...');
+
+            try {
+                const file = fileInput.files[0];
+                if (!file) {
+                    throw new Error('Please select a file');
+                }
+
+                console.log('Creating agent from OAuth session...');
+                
+                // Use the existing agent
+                const agent = currentAgent;
+
+                console.log('Agent created, reading file...');
+
+                // Read file as Uint8Array
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                console.log('Uploading blob, size:', uint8Array.length);
+
+                // Upload the blob directly using the agent
+                const { data } = await agent.uploadBlob(uint8Array, {
+                    encoding: file.type,
+                });
+
+                console.log('Upload successful:', data);
+
+                const cid = data.blob.ref.toString();
+                
+                // Success
+                document.getElementById('cidOutput').value = cid;
+                document.getElementById('mimeTypeDisplay').textContent = data.blob.mimeType;
+                document.getElementById('sizeDisplay').textContent = formatBytes(data.blob.size);
+                
+                // Set view link
+                const blobUrl = getBlobUrl(userDid, cid);
+                document.getElementById('blobViewLink').href = blobUrl;
+                
+                resultSection.classList.remove('hidden');
+                
+                // Refresh blob list to show the new upload
+                loadBlobs(true);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showError('Upload failed: ' + error.message);
+            } finally {
+                setLoading(false);
+                lucide.createIcons();
+            }
+        });
+
+        // Copy to clipboard
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const copyText = document.getElementById('cidOutput');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check"></i>';
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalIcon;
+                    lucide.createIcons();
+                }, 2000);
+            });
+        });
+
+        // UI Helpers
+        function setLoading(isLoading, text = 'Loading...') {
+            if (isLoading) {
+                loadingState.classList.remove('hidden');
+                loadingState.classList.add('flex');
+                loadingText.textContent = text;
+                loginForm.classList.add('opacity-50', 'pointer-events-none');
+                uploadForm.classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                loadingState.classList.add('hidden');
+                loadingState.classList.remove('flex');
+                loginForm.classList.remove('opacity-50', 'pointer-events-none');
+                uploadForm.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorSection.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function hideError() {
+            errorSection.classList.add('hidden');
+        }
+
+        // Drag and Drop handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileName);
+
+        function updateFileName() {
+            if (fileInput.files.length) {
+                fileName.textContent = fileInput.files[0].name;
+                fileName.classList.add('text-primary');
+                fileName.classList.remove('text-base-content/50');
+            } else {
+                fileName.textContent = 'No file selected';
+                fileName.classList.remove('text-primary');
+                fileName.classList.add('text-base-content/50');
+            }
+        }
+        
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        // Get blob URL for viewing
+        function getBlobUrl(did, cid) {
+            // Use the CDN URL format for viewing blobs
+            return `https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`;
+        }
+
+        // Get raw blob URL
+        function getRawBlobUrl(did, cid) {
+            return `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
+        }
+
+        // Load blobs list
+        async function loadBlobs(reset = false) {
+            const blobList = document.getElementById('blobList');
+            const blobListLoading = document.getElementById('blobListLoading');
+            const blobListEmpty = document.getElementById('blobListEmpty');
+            const blobCount = document.getElementById('blobCount');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            
+            if (reset) {
+                blobCursor = null;
+                blobList.innerHTML = '';
+            }
+            
+            blobListLoading.classList.remove('hidden');
+            blobListEmpty.classList.add('hidden');
+            
+            try {
+                // Use the listBlobs API
+                const params = { did: userDid, limit: 25 };
+                if (blobCursor) {
+                    params.cursor = blobCursor;
+                }
+                
+                const response = await currentAgent.com.atproto.sync.listBlobs(params);
+                
+                console.log('Blobs response:', response);
+                
+                const blobs = response.data.cids || [];
+                blobCursor = response.data.cursor;
+                
+                if (blobs.length === 0 && !blobCursor && blobList.children.length === 0) {
+                    blobListEmpty.classList.remove('hidden');
+                    blobCount.textContent = '0 blobs';
+                } else {
+                    // Render blobs
+                    blobs.forEach(cid => {
+                        const blobItem = createBlobItem(cid);
+                        blobList.appendChild(blobItem);
+                    });
+                    
+                    const totalCount = blobList.children.length;
+                    blobCount.textContent = `${totalCount} blob${totalCount !== 1 ? 's' : ''}${blobCursor ? '+' : ''}`;
+                }
+                
+                // Show/hide load more button
+                if (blobCursor) {
+                    loadMoreContainer.classList.remove('hidden');
+                } else {
+                    loadMoreContainer.classList.add('hidden');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load blobs:', error);
+                showError('Failed to load blobs: ' + error.message);
+            } finally {
+                blobListLoading.classList.add('hidden');
+                lucide.createIcons();
+            }
+        }
+
+        // Create a blob list item
+        function createBlobItem(cid) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors';
+            
+            const rawUrl = getRawBlobUrl(userDid, cid);
+            const cdnUrl = getBlobUrl(userDid, cid);
+            
+            div.innerHTML = `
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="avatar placeholder">
+                        <div class="bg-neutral text-neutral-content rounded w-10 h-10 flex items-center justify-center">
+                            <i data-lucide="file" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-mono truncate" title="${cid}">${cid}</p>
+                    </div>
+                </div>
+                <div class="flex gap-1">
+                    <button class="btn btn-sm btn-ghost btn-square copy-cid-btn" data-cid="${cid}" title="Copy CID">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                    </button>
+                    <a href="${rawUrl}" target="_blank" class="btn btn-sm btn-ghost btn-square" title="Download Raw">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </a>
+                    <a href="${cdnUrl}" target="_blank" class="btn btn-sm btn-ghost btn-square" title="View (if image)">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            `;
+            
+            // Add copy handler
+            div.querySelector('.copy-cid-btn').addEventListener('click', (e) => {
+                const cidToCopy = e.currentTarget.dataset.cid;
+                navigator.clipboard.writeText(cidToCopy).then(() => {
+                    const btn = e.currentTarget;
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4"></i>';
+                        lucide.createIcons();
+                    }, 1500);
+                });
+            });
+            
+            return div;
+        }
+
+        // Refresh blobs button handler
+        document.getElementById('refreshBlobsBtn').addEventListener('click', () => {
+            loadBlobs(true);
+        });
+
+        // Load more button handler
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            loadBlobs(false);
+        });
+
+        // Initialize on page load
+        initOAuth();
+    </script>
+</body>
+</html>

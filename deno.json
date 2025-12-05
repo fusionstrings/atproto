@@ -1,9 +1,10 @@
 {
   "tasks": {
-    "start": "deno run --allow-net --allow-read --allow-env --watch server.ts"
+    "dev": "deno serve --watch --allow-read --allow-net server.ts",
+    "start": "deno serve --allow-read --allow-net server.ts"
   },
   "imports": {
-    "hono": "jsr:@hono/hono",
-    "hono/deno": "jsr:@hono/hono/deno"
+    "@std/media-types": "jsr:@std/media-types",
+    "@std/path": "jsr:@std/path"
   }
 }

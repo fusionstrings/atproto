@@ -1,23 +1,42 @@
-import { Hono } from 'hono';
-import { serveStatic } from 'hono/deno';
+/**
+ * Static file server for Bluesky Blob Store
+ * Uses deno serve with @std/media-types
+ */
 
-const app = new Hono();
+import { contentType } from "@std/media-types";
+import { extname } from "@std/path";
 
-// Serve static files
-app.use('/static/*', serveStatic({ root: './' }));
+const STATIC_DIR = "./static";
 
-// Main page - serves the SPA
-app.get('/', async (c) => {
-  const html = await Deno.readTextFile('./static/index.html');
-  return c.html(html);
-});
+export default {
+    async fetch(req: Request): Promise<Response> {
+        const url = new URL(req.url);
+        let pathname = url.pathname;
 
-// All OAuth is handled in the browser by @atproto/oauth-client-browser
-// The browser OAuth client handles:
-// - OAuth flow initiation and callback
-// - Session storage in IndexedDB
-// - Token refresh
-// - Blob uploads via Agent
+        // Default to index.html for root
+        if (pathname === "/") {
+            pathname = "/index.html";
+        }
 
-console.log('Server running at http://127.0.0.1:8000');
-Deno.serve({ port: 8000 }, app.fetch);
+        const filePath = `${STATIC_DIR}${pathname}`;
+        const ext = extname(filePath);
+
+        try {
+            const file = await Deno.readFile(filePath);
+            const mimeType = contentType(ext) || "application/octet-stream";
+
+            return new Response(file, {
+                status: 200,
+                headers: {
+                    "Content-Type": mimeType,
+                    "Cache-Control": "no-cache",
+                },
+            });
+        } catch (error) {
+            if (error instanceof Deno.errors.NotFound) {
+                return new Response("Not Found", { status: 404 });
+            }
+            return new Response("Internal Server Error", { status: 500 });
+        }
+    },
+};
