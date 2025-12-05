@@ -40,17 +40,16 @@ class AppHeader extends BaseComponent {
                 .logo {
                     width: 40px;
                     height: 40px;
-                    background: linear-gradient(135deg, oklch(65.69% 0.196 275.75), oklch(55% 0.2 280));
                     border-radius: 0.75rem;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: white;
+                    overflow: hidden;
                 }
 
-                .logo svg {
-                    width: 24px;
-                    height: 24px;
+                .logo img {
+                    width: 100%;
+                    height: 100%;
                 }
 
                 .brand-text h1 {
@@ -138,15 +137,11 @@ class AppHeader extends BaseComponent {
             <header class="header">
                 <div class="brand">
                     <div class="logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                        </svg>
+                        <img src="/images/pins-logo.png" alt="Pins Logo" />
                     </div>
                     <div class="brand-text">
-                        <h1>Bluesky Blob Store</h1>
-                        <p>Upload, manage & share files</p>
+                        <h1>Pins</h1>
+                        <p>AT Protocol File Storage</p>
                     </div>
                 </div>
                 <div class="user-section">

@@ -5,8 +5,7 @@
 import { BaseComponent } from './base-component.js';
 import { store } from '../js/store.js';
 import { oauthService } from '../js/oauth-service.js';
-import { blobService } from '../js/blob-service.js';
-import { showToast } from './toast-notification.js';
+import { pinService } from '../js/pin-service.js';
 
 // Import all components
 import './app-header.js';
@@ -139,7 +138,6 @@ class BlobStoreApp extends BaseComponent {
     }
 
     async initializeApp() {
-        const container = this.$('#appContainer');
         const loading = this.$('#initLoading');
 
         try {
@@ -154,7 +152,7 @@ class BlobStoreApp extends BaseComponent {
 
             // If authenticated, load blobs
             if (store.getState().isAuthenticated) {
-                await blobService.listBlobs();
+                await pinService.loadAllBlobs();
             }
 
         } catch (error) {

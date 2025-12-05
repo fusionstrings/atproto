@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blob Store — Bluesky File Storage</title>
-    <meta name="description" content="Upload files and manage blobs on your Bluesky PDS">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+    <title>Pins — AT Protocol File Storage</title>
+    <meta name="description" content="Upload files and manage blobs on your AT Protocol PDS">
+    <link rel="icon" type="image/svg+xml" href="/images/pins-logo.svg">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -282,6 +282,7 @@
 
         .toast-success { border-left: 3px solid var(--success); }
         .toast-error { border-left: 3px solid var(--error); }
+        .toast-warning { border-left: 3px solid #f59e0b; }
         .toast-info { border-left: 3px solid var(--accent-primary); }
 
         @keyframes slideIn {
@@ -320,13 +321,14 @@
             width: 72px;
             height: 72px;
             margin: 0 auto 24px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             border-radius: var(--radius-xl);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
             box-shadow: var(--shadow-glow);
+            overflow: hidden;
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
         }
 
         .login-title {
@@ -433,12 +435,13 @@
         .navbar-logo {
             width: 36px;
             height: 36px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
+            overflow: hidden;
+        }
+
+        .navbar-logo img {
+            width: 100%;
+            height: 100%;
         }
 
         .navbar-user {
@@ -840,6 +843,205 @@
             color: var(--text-tertiary);
         }
 
+        /* Search & Filter */
+        .search-filter-bar {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-wrap: wrap;
+        }
+        
+        .search-input-wrapper {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        
+        .search-input-wrapper svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 40px;
+            font-size: 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            outline: none;
+            transition: all var(--transition-base);
+        }
+        
+        .search-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+        }
+        
+        .filter-tab {
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+        
+        .filter-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+        
+        .filter-tab.active {
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+        
+        /* Preview Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            animation: scaleIn 0.2s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .modal-close:hover {
+            opacity: 1;
+        }
+        
+        .modal-image {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-video, .modal-audio {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: var(--radius-md);
+        }
+        
+        .modal-text {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: var(--radius-md);
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+        }
+        
+        .modal-info {
+            position: absolute;
+            bottom: -60px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .modal-info a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        
+        /* Bulk upload indicator */
+        .upload-queue {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-default);
+        }
+        
+        .upload-queue-header {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .upload-queue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .upload-queue-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .upload-queue-item .spinner {
+            width: 14px;
+            height: 14px;
+        }
+
         /* Loading State */
         .loading-state {
             padding: 64px 24px;
@@ -867,13 +1069,14 @@
         .init-loading-logo {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
+            overflow: hidden;
             animation: pulse 2s ease-in-out infinite;
+        }
+
+        .init-loading-logo img {
+            width: 100%;
+            height: 100%;
         }
 
         @keyframes pulse {
@@ -885,7 +1088,7 @@
 <body>
     <div id="app">
         <div class="init-loading">
-            <div class="init-loading-logo">✦</div>
+            <div class="init-loading-logo"><img src="/images/pins-logo.svg" alt="Pins"></div>
             <div class="spinner spinner-lg"></div>
         </div>
     </div>
@@ -911,7 +1114,12 @@
             agent: null,
             blobs: [],
             loading: false,
-            handle: null
+            handle: null,
+            // New state for enhanced features
+            searchQuery: '',
+            filterType: 'all', // 'all', 'pinned', 'images', 'documents', 'other'
+            previewBlob: null, // For modal preview
+            uploadQueue: [] // For bulk upload
         };
 
         // ============== OAuth ==============
@@ -1143,20 +1351,22 @@
         }
 
         // ============== Toast ==============
+        const TOAST_ICONS = {
+            success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+            error: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+            warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+            info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
+        };
+
         function showToast(message, type = 'info') {
             const container = document.getElementById('toasts');
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    ${type === 'success' 
-                        ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-                        : type === 'error'
-                        ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
-                        : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
-                </svg>
-                <span style="flex:1;font-size:14px;">${message}</span>
-            `;
+            const template = document.getElementById('tpl-toast');
+            const toast = template.content.cloneNode(true).firstElementChild;
+            
+            toast.classList.add(`toast-${type}`);
+            toast.querySelector('.toast-icon').innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+            toast.querySelector('.toast-message').textContent = message;
+            
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.animation = 'fadeOut 0.3s ease-out forwards';
@@ -1164,240 +1374,345 @@
             }, 4000);
         }
 
+        // ============== Template Helpers ==============
+        function cloneTemplate(id) {
+            const template = document.getElementById(id);
+            return template.content.cloneNode(true).firstElementChild;
+        }
+
+        // ============== Filter & Search ==============
+        function getFilteredBlobs() {
+            let filtered = state.blobs;
+            
+            // Apply type filter
+            switch (state.filterType) {
+                case 'pinned':
+                    filtered = filtered.filter(b => b.isPinned);
+                    break;
+                case 'images':
+                    filtered = filtered.filter(b => b.mimeType?.startsWith('image/'));
+                    break;
+                case 'documents':
+                    filtered = filtered.filter(b => 
+                        b.mimeType?.startsWith('text/') || 
+                        b.mimeType?.includes('pdf') || 
+                        b.mimeType?.includes('json') ||
+                        b.mimeType?.includes('xml')
+                    );
+                    break;
+            }
+            
+            // Apply search filter
+            if (state.searchQuery) {
+                const query = state.searchQuery.toLowerCase();
+                filtered = filtered.filter(b => 
+                    b.filename?.toLowerCase().includes(query) ||
+                    b.cid?.toLowerCase().includes(query) ||
+                    b.mimeType?.toLowerCase().includes(query)
+                );
+            }
+            
+            return filtered;
+        }
+
         // ============== Render ==============
         function render() {
             const app = document.getElementById('app');
-            app.innerHTML = state.session ? renderDashboard() : renderLogin();
+            app.innerHTML = '';
+            
+            if (state.session) {
+                app.appendChild(renderDashboard());
+                updateStats();
+                updateBlobsContent();
+            } else {
+                app.appendChild(cloneTemplate('tpl-login'));
+            }
+            
+            if (state.previewBlob) {
+                renderPreviewModal();
+            }
             attachEvents();
         }
-
-        function renderLogin() {
-            return `
-                <div class="login-page">
-                    <div class="login-container">
-                        <div class="login-header">
-                            <div class="login-logo">✦</div>
-                            <h1 class="login-title">Blob Store</h1>
-                            <p class="login-subtitle">Secure file storage for the AT Protocol</p>
-                        </div>
-                        
-                        <div class="card card-elevated login-card">
-                            <form class="login-form" id="loginForm">
-                                <div class="form-group">
-                                    <label class="form-label">Your Bluesky Handle</label>
-                                    <div class="input-wrapper">
-                                        <span class="input-prefix">@</span>
-                                        <input 
-                                            type="text" 
-                                            class="input input-with-prefix" 
-                                            id="handleInput" 
-                                            placeholder="username.bsky.social" 
-                                            required 
-                                            autocomplete="username"
-                                            autofocus
-                                        />
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary login-btn" id="loginBtn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                                        <polyline points="10 17 15 12 10 7"/>
-                                        <line x1="15" y1="12" x2="3" y2="12"/>
-                                    </svg>
-                                    Sign in with Bluesky
-                                </button>
-                            </form>
-                            
-                            <div class="login-footer">
-                                <svg class="login-footer-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                                <p class="login-footer-text">
-                                    <strong>Secure OAuth Authentication</strong><br>
-                                    Your credentials never leave your PDS. We only receive authorized access tokens.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        
+        function updateStats() {
+            const pinned = state.blobs.filter(b => b.isPinned).length;
+            const other = state.blobs.filter(b => !b.isPinned).length;
+            
+            const statPinned = document.getElementById('statPinned');
+            const statOther = document.getElementById('statOther');
+            const statTotal = document.getElementById('statTotal');
+            
+            if (statPinned) statPinned.textContent = pinned;
+            if (statOther) statOther.textContent = other;
+            if (statTotal) statTotal.textContent = state.blobs.length;
+        }
+        
+        // Update only the blobs content area (for search/filter without losing focus)
+        function updateBlobsContent() {
+            const blobsContainer = document.getElementById('blobsContent');
+            const blobsCount = document.getElementById('blobsCount');
+            
+            if (!blobsContainer) return;
+            
+            const filtered = getFilteredBlobs();
+            if (blobsCount) blobsCount.textContent = filtered.length;
+            
+            blobsContainer.innerHTML = '';
+            
+            if (state.loading) {
+                blobsContainer.appendChild(cloneTemplate('tpl-loading'));
+            } else if (filtered.length === 0) {
+                const empty = cloneTemplate('tpl-empty');
+                const isFiltered = state.searchQuery || state.filterType !== 'all';
+                empty.querySelector('.empty-title').textContent = isFiltered ? 'No matching blobs' : 'No blobs yet';
+                empty.querySelector('.empty-text').textContent = isFiltered ? 'Try a different search or filter' : 'Upload your first file to get started';
+                blobsContainer.appendChild(empty);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'blobs-grid';
+                filtered.forEach(blob => grid.appendChild(renderBlobItem(blob)));
+                blobsContainer.appendChild(grid);
+            }
+            
+            // Re-attach blob-specific events
+            attachBlobEvents();
+        }
+        
+        function renderBlobItem(blob) {
+            const item = cloneTemplate('tpl-blob-item');
+            
+            const isImage = blob.mimeType?.startsWith('image/') || blob.source === 'repo';
+            const isVideo = blob.mimeType?.startsWith('video/');
+            const isAudio = blob.mimeType?.startsWith('audio/');
+            const isPdf = blob.mimeType === 'application/pdf';
+            const isText = blob.mimeType?.startsWith('text/') || blob.mimeType?.includes('json');
+            const icon = isVideo ? '🎬' : isAudio ? '🎵' : isPdf ? '📑' : isText ? '📝' : '📄';
+            const canPreview = isImage || isVideo || isAudio || isText;
+            
+            // Set classes and data
+            item.classList.add(blob.isPinned ? 'blob-pinned' : 'blob-other');
+            if (canPreview) {
+                item.style.cursor = 'pointer';
+                item.dataset.preview = JSON.stringify({
+                    cid: blob.cid, 
+                    url: blob.rawUrl, 
+                    type: blob.mimeType, 
+                    filename: blob.filename
+                });
+            }
+            
+            // Badge
+            const badge = item.querySelector('.blob-badge');
+            badge.className = blob.isPinned ? 'pin-badge' : 'repo-badge';
+            badge.title = blob.isPinned ? 'Pinned' : 'From other records';
+            badge.textContent = blob.isPinned ? '📌' : '🔗';
+            
+            // Thumbnail
+            const img = item.querySelector('.blob-thumb-img');
+            const placeholder = item.querySelector('.blob-thumbnail-placeholder');
+            
+            if (isImage) {
+                img.src = blob.cdnUrl;
+                img.alt = blob.filename || '';
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                    placeholder.textContent = '📄';
+                };
+                placeholder.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                placeholder.textContent = icon;
+            }
+            
+            // Info
+            const filename = item.querySelector('.blob-filename');
+            if (blob.filename) {
+                filename.textContent = blob.filename;
+                filename.title = blob.filename;
+            } else {
+                filename.style.display = 'none';
+            }
+            
+            const typeBadge = item.querySelector('.blob-type-badge');
+            const typeText = blob.isPinned ? (blob.mimeType?.split('/')[1]?.toUpperCase() || 'FILE') : 'REPO BLOB';
+            typeBadge.textContent = blob.size ? `${typeText} • ${formatSize(blob.size)}` : typeText;
+            
+            const cid = item.querySelector('.blob-cid');
+            cid.textContent = blob.cid;
+            cid.title = blob.cid;
+            
+            // Actions
+            item.querySelector('.copy-cid-btn').dataset.cid = blob.cid;
+            item.querySelector('.copy-url-btn').dataset.url = blob.rawUrl;
+            item.querySelector('.download-btn').href = blob.rawUrl;
+            
+            const deleteBtn = item.querySelector('.delete-btn');
+            if (blob.isPinned) {
+                deleteBtn.style.display = '';
+                deleteBtn.dataset.rkey = blob.rkey;
+            }
+            
+            return item;
+        }
+        
+        function attachBlobEvents() {
+            // Preview blobs (click on blob item with preview data)
+            document.querySelectorAll('.blob-item[data-preview]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.blob-actions')) return;
+                    try {
+                        state.previewBlob = JSON.parse(item.dataset.preview);
+                        render();
+                    } catch (err) {
+                        console.error('Failed to parse preview data:', err);
+                    }
+                });
+            });
+            
+            // Copy CID buttons
+            document.querySelectorAll('.copy-cid-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await navigator.clipboard.writeText(btn.dataset.cid);
+                    showToast('CID copied to clipboard', 'success');
+                });
+            });
+            
+            // Copy URL buttons
+            document.querySelectorAll('.copy-url-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await navigator.clipboard.writeText(btn.dataset.url);
+                    showToast('URL copied to clipboard', 'success');
+                });
+            });
+            
+            // Delete buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm('Are you sure you want to delete this blob?')) {
+                        await deleteBlob(btn.dataset.rkey);
+                    }
+                });
+            });
+        }
+        
+        function renderPreviewModal() {
+            const blob = state.previewBlob;
+            if (!blob) return;
+            
+            const isImage = blob.type?.startsWith('image/');
+            const isVideo = blob.type?.startsWith('video/');
+            const isAudio = blob.type?.startsWith('audio/');
+            const isText = blob.type?.startsWith('text/') || blob.type?.includes('json');
+            
+            const modal = cloneTemplate('tpl-preview-modal');
+            const container = modal.querySelector('.modal-preview-container');
+            
+            if (isImage) {
+                const img = document.createElement('img');
+                img.className = 'modal-image';
+                img.src = blob.url;
+                img.alt = blob.filename || 'Image';
+                container.appendChild(img);
+            } else if (isVideo) {
+                const video = document.createElement('video');
+                video.className = 'modal-video';
+                video.src = blob.url;
+                video.controls = true;
+                video.autoplay = true;
+                container.appendChild(video);
+            } else if (isAudio) {
+                const audio = document.createElement('audio');
+                audio.className = 'modal-audio';
+                audio.src = blob.url;
+                audio.controls = true;
+                audio.autoplay = true;
+                container.appendChild(audio);
+            } else if (isText) {
+                const pre = document.createElement('pre');
+                pre.className = 'modal-text';
+                pre.id = 'textContent';
+                pre.textContent = 'Loading...';
+                container.appendChild(pre);
+                
+                // Load text content
+                fetch(blob.url)
+                    .then(r => r.text())
+                    .then(text => {
+                        pre.textContent = text.slice(0, 50000);
+                    })
+                    .catch(() => {
+                        pre.textContent = 'Failed to load content';
+                    });
+            }
+            
+            // Set info
+            const filenameEl = modal.querySelector('.modal-filename');
+            if (blob.filename) {
+                filenameEl.textContent = blob.filename;
+            } else {
+                filenameEl.style.display = 'none';
+            }
+            modal.querySelector('.modal-link').href = blob.url;
+            
+            document.body.appendChild(modal);
+            
+            // Close handlers
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closePreview();
+            });
+            modal.querySelector('#closeModal')?.addEventListener('click', closePreview);
+        }
+        
+        function closePreview() {
+            state.previewBlob = null;
+            document.getElementById('previewModal')?.remove();
         }
 
         function renderDashboard() {
+            const dashboard = cloneTemplate('tpl-dashboard');
             const did = state.session?.did || '';
             const handle = state.handle || did.split(':').pop();
             
-            return `
-                <div class="dashboard">
-                    <nav class="navbar">
-                        <div class="navbar-inner">
-                            <div class="navbar-brand">
-                                <div class="navbar-logo">✦</div>
-                                <span>Blob Store</span>
-                            </div>
-                            <div class="navbar-user">
-                                <div class="user-info">
-                                    <div class="user-handle">@${handle}</div>
-                                    <div class="user-did">${did.slice(0, 24)}...</div>
-                                </div>
-                                <button class="btn btn-secondary btn-sm" id="signOutBtn">Sign Out</button>
-                            </div>
-                        </div>
-                    </nav>
-                    
-                    <main class="main-content">
-                        <div class="dashboard-grid">
-                            <div class="sidebar">
-                                <!-- Upload Card -->
-                                <div class="card upload-card">
-                                    <div class="upload-header">
-                                        <div class="upload-icon">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                <polyline points="17 8 12 3 7 8"/>
-                                                <line x1="12" y1="3" x2="12" y2="15"/>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div class="upload-title">Upload File</div>
-                                            <div class="upload-subtitle">Max 1MB • Any file type</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="dropzone" id="dropzone">
-                                        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                            <polyline points="17 8 12 3 7 8"/>
-                                            <line x1="12" y1="3" x2="12" y2="15"/>
-                                        </svg>
-                                        <p class="dropzone-text">Drop file here or click to browse</p>
-                                        <p class="dropzone-hint">PNG, JPG, PDF, or any file</p>
-                                        <input type="file" id="fileInput" style="display:none;" />
-                                    </div>
-                                    
-                                    <div id="uploadPreview" style="display:none;"></div>
-                                </div>
-                                
-                                <!-- Stats Card -->
-                                <div class="card stats-card">
-                                    <div class="stats-header">
-                                        <span class="stats-title">Storage Overview</span>
-                                        <button class="btn btn-ghost btn-sm btn-icon" id="refreshBtn" title="Refresh">
-                                            ${state.loading 
-                                                ? '<div class="spinner"></div>'
-                                                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>'}
-                                        </button>
-                                    </div>
-                                    <div class="stats-grid">
-                                        <div class="stat-item">
-                                            <div class="stat-value">${state.blobs.filter(b => b.isPinned).length}</div>
-                                            <div class="stat-label">📌 Pinned</div>
-                                        </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value">${state.blobs.filter(b => !b.isPinned).length}</div>
-                                            <div class="stat-label">🔗 Other</div>
-                                        </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value">${state.blobs.length}</div>
-                                            <div class="stat-label">Total</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Blobs Grid -->
-                            <div class="card blobs-section">
-                                <div class="blobs-header">
-                                    <h2 class="blobs-title">
-                                        Your Blobs
-                                        <span class="badge badge-primary blobs-count">${state.blobs.length}</span>
-                                    </h2>
-                                </div>
-                                
-                                ${state.loading ? `
-                                    <div class="loading-state">
-                                        <div class="spinner spinner-lg"></div>
-                                        <div class="loading-text">Loading your blobs...</div>
-                                    </div>
-                                ` : state.blobs.length === 0 ? `
-                                    <div class="empty-state">
-                                        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                                            <line x1="12" y1="22.08" x2="12" y2="12"/>
-                                        </svg>
-                                        <h3 class="empty-title">No blobs yet</h3>
-                                        <p class="empty-text">Upload your first file to get started</p>
-                                    </div>
-                                ` : `
-                                    <div class="blobs-grid">
-                                        ${state.blobs.map(blob => {
-                                            const isImage = blob.mimeType?.startsWith('image/') || blob.source === 'repo';
-                                            const isVideo = blob.mimeType?.startsWith('video/');
-                                            const isAudio = blob.mimeType?.startsWith('audio/');
-                                            const isPdf = blob.mimeType === 'application/pdf';
-                                            const icon = isVideo ? '🎬' : isAudio ? '🎵' : isPdf ? '📑' : '📄';
-                                            
-                                            return `
-                                            <div class="blob-item ${blob.isPinned ? 'blob-pinned' : 'blob-other'}">
-                                                ${blob.isPinned ? '<div class="pin-badge" title="Pinned">📌</div>' : '<div class="repo-badge" title="From other records">🔗</div>'}
-                                                <div class="blob-thumbnail">
-                                                    ${isImage ? `
-                                                        <img 
-                                                            src="${blob.cdnUrl}" 
-                                                            alt="" 
-                                                            loading="lazy"
-                                                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-                                                        />
-                                                        <div class="blob-thumbnail-placeholder" style="display:none;">📄</div>
-                                                    ` : `
-                                                        <div class="blob-thumbnail-placeholder">${icon}</div>
-                                                    `}
-                                                </div>
-                                                <div class="blob-info">
-                                                    ${blob.filename ? `<div class="blob-filename" title="${blob.filename}">${blob.filename}</div>` : ''}
-                                                    <div class="blob-type-badge">${blob.isPinned ? (blob.mimeType?.split('/')[1]?.toUpperCase() || 'FILE') : 'REPO BLOB'}${blob.size ? ` • ${formatSize(blob.size)}` : ''}</div>
-                                                    <div class="blob-cid" title="${blob.cid}">${blob.cid}</div>
-                                                    <div class="blob-actions">
-                                                        <button class="btn btn-ghost btn-sm copy-cid-btn" data-cid="${blob.cid}" title="Copy CID">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                                            </svg>
-                                                        </button>
-                                                        <button class="btn btn-ghost btn-sm copy-url-btn" data-url="${blob.rawUrl}" title="Copy URL">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                                                            </svg>
-                                                        </button>
-                                                        <a href="${blob.rawUrl}" target="_blank" class="btn btn-ghost btn-sm" title="Download">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                                <polyline points="7 10 12 15 17 10"/>
-                                                                <line x1="12" y1="15" x2="12" y2="3"/>
-                                                            </svg>
-                                                        </a>
-                                                        ${blob.isPinned ? `
-                                                        <button class="btn btn-ghost btn-sm delete-btn" data-rkey="${blob.rkey}" title="Delete">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <polyline points="3 6 5 6 21 6"/>
-                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                            </svg>
-                                                        </button>
-                                                        ` : ''}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `}).join('')}
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            `;
+            dashboard.querySelector('#userHandle').textContent = `@${handle}`;
+            dashboard.querySelector('#userDid').textContent = `${did.slice(0, 24)}...`;
+            
+            // Set search value
+            const searchInput = dashboard.querySelector('#searchInput');
+            if (searchInput) searchInput.value = state.searchQuery;
+            
+            // Set active filter
+            const filterTabs = dashboard.querySelectorAll('.filter-tab');
+            filterTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === state.filterType);
+            });
+            
+            // Render upload queue if present
+            if (state.uploadQueue.length > 0) {
+                const queueContainer = dashboard.querySelector('#uploadQueueContainer');
+                const queue = cloneTemplate('tpl-upload-queue');
+                queue.querySelector('.upload-queue-header span').textContent = `Uploading ${state.uploadQueue.length} file(s)...`;
+                
+                const list = queue.querySelector('.upload-queue-list');
+                state.uploadQueue.forEach(f => {
+                    const queueItem = cloneTemplate('tpl-upload-queue-item');
+                    queueItem.querySelector('.upload-queue-item-name').textContent = f.name;
+                    list.appendChild(queueItem);
+                });
+                
+                queueContainer.appendChild(queue);
+            }
+            
+            // Show loading spinner on refresh button if loading
+            if (state.loading) {
+                const refreshBtn = dashboard.querySelector('#refreshBtn');
+                refreshBtn.innerHTML = '<div class="spinner"></div>';
+            }
+            
+            return dashboard;
         }
 
         function getFileTypeIcon(mimeType) {
@@ -1423,6 +1738,16 @@
 
         // ============== Events ==============
         let selectedFile = null;
+        
+        // Store original login button HTML for reset
+        const LOGIN_BTN_HTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Sign in with Bluesky
+        `;
 
         function attachEvents() {
             // Login form
@@ -1440,14 +1765,7 @@
                 } catch (err) {
                     showToast('Sign in failed: ' + err.message, 'error');
                     btn.disabled = false;
-                    btn.innerHTML = `
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                            <polyline points="10 17 15 12 10 7"/>
-                            <line x1="15" y1="12" x2="3" y2="12"/>
-                        </svg>
-                        Sign in with Bluesky
-                    `;
+                    btn.innerHTML = LOGIN_BTN_HTML;
                 }
             });
 
@@ -1457,7 +1775,49 @@
             // Refresh
             document.getElementById('refreshBtn')?.addEventListener('click', listBlobs);
 
-            // Dropzone
+            // Search input - update only blobs content, not full render
+            const searchInput = document.getElementById('searchInput');
+            searchInput?.addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                updateBlobsContent();
+            });
+            
+            // Filter tabs - update active state and blobs content
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    state.filterType = tab.dataset.filter;
+                    // Update active class without full re-render
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    updateBlobsContent();
+                });
+            });
+            
+            // Attach blob-specific events
+            attachBlobEvents();
+            
+            // Close preview modal
+            document.getElementById('closePreviewBtn')?.addEventListener('click', () => {
+                state.previewBlob = null;
+                render();
+            });
+            
+            document.querySelector('.modal-overlay')?.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-overlay')) {
+                    state.previewBlob = null;
+                    render();
+                }
+            });
+            
+            // Keyboard handlers
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && state.previewBlob) {
+                    state.previewBlob = null;
+                    render();
+                }
+            });
+
+            // Dropzone - now supports multiple files
             const dropzone = document.getElementById('dropzone');
             const fileInput = document.getElementById('fileInput');
             
@@ -1475,61 +1835,92 @@
             dropzone?.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropzone.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) handleFiles(files);
             });
             
             fileInput?.addEventListener('change', (e) => {
-                if (e.target.files[0]) handleFile(e.target.files[0]);
-            });
-
-            // Copy CID buttons
-            document.querySelectorAll('.copy-cid-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    await navigator.clipboard.writeText(btn.dataset.cid);
-                    showToast('CID copied to clipboard', 'success');
-                });
-            });
-            
-            // Copy URL buttons
-            document.querySelectorAll('.copy-url-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    await navigator.clipboard.writeText(btn.dataset.url);
-                    showToast('URL copied to clipboard', 'success');
-                });
-            });
-            
-            // Delete buttons
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    if (confirm('Are you sure you want to delete this blob?')) {
-                        await deleteBlob(btn.dataset.rkey);
-                    }
-                });
+                const files = Array.from(e.target.files);
+                if (files.length > 0) handleFiles(files);
             });
         }
 
-        function handleFile(file) {
-            if (file.size > 1024 * 1024) {
-                showToast('File too large. Maximum size is 1MB.', 'error');
+        // Handle multiple files
+        async function handleFiles(files) {
+            // Filter out files that are too large
+            const validFiles = [];
+            const invalidFiles = [];
+            
+            for (const file of files) {
+                if (file.size > 1024 * 1024) {
+                    console.warn(`File ${file.name} exceeds 1MB ${file.size} bytes limit.`);
+                    //invalidFiles.push(file.name);
+                    validFiles.push(file);
+                } else {
+                    validFiles.push(file);
+                }
+                
+            }
+            
+            if (invalidFiles.length > 0) {
+                showToast(`${invalidFiles.length} file(s) skipped (>1MB): ${invalidFiles.slice(0, 3).join(', ')}${invalidFiles.length > 3 ? '...' : ''}`, 'warning');
+            }
+            
+            if (validFiles.length === 0) {
                 return;
             }
             
+            // Single file - show preview like before
+            if (validFiles.length === 1) {
+                handleSingleFile(validFiles[0]);
+                return;
+            }
+            
+            // Multiple files - upload all with queue
+            state.uploadQueue = validFiles.map(f => ({ name: f.name, status: 'pending' }));
+            render();
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (let i = 0; i < validFiles.length; i++) {
+                state.uploadQueue[i].status = 'uploading';
+                render();
+                
+                try {
+                    await uploadBlob(validFiles[i]);
+                    state.uploadQueue[i].status = 'done';
+                    successCount++;
+                } catch (err) {
+                    state.uploadQueue[i].status = 'error';
+                    failCount++;
+                    console.error(`Failed to upload ${validFiles[i].name}:`, err);
+                }
+            }
+            
+            state.uploadQueue = [];
+            document.getElementById('fileInput').value = '';
+            
+            if (successCount > 0) {
+                showToast(`${successCount} file(s) uploaded successfully${failCount > 0 ? `, ${failCount} failed` : ''}`, failCount > 0 ? 'warning' : 'success');
+            } else {
+                showToast('All uploads failed', 'error');
+            }
+            
+            await listBlobs();
+        }
+        
+        function handleSingleFile(file) {
             selectedFile = file;
             const preview = document.getElementById('uploadPreview');
             preview.style.display = 'block';
-            preview.innerHTML = `
-                <div class="file-preview">
-                    <div class="file-preview-icon">${file.type.startsWith('image/') ? '🖼️' : '📄'}</div>
-                    <div class="file-preview-info">
-                        <div class="file-preview-name">${file.name}</div>
-                        <div class="file-preview-size">${(file.size / 1024).toFixed(1)} KB</div>
-                    </div>
-                    <div class="file-preview-actions">
-                        <button class="btn btn-ghost btn-sm" id="clearFileBtn">Cancel</button>
-                        <button class="btn btn-primary btn-sm" id="uploadBtn">Upload</button>
-                    </div>
-                </div>
-            `;
+            preview.innerHTML = '';
+            
+            const filePreview = cloneTemplate('tpl-file-preview');
+            filePreview.querySelector('.file-preview-icon').textContent = file.type.startsWith('image/') ? '🖼️' : '📄';
+            filePreview.querySelector('.file-preview-name').textContent = file.name;
+            filePreview.querySelector('.file-preview-size').textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            preview.appendChild(filePreview);
             
             document.getElementById('clearFileBtn')?.addEventListener('click', () => {
                 selectedFile = null;
@@ -1561,24 +1952,328 @@
                 }
             } catch (err) {
                 console.error('Init error:', err);
-                document.getElementById('app').innerHTML = `
-                    <div class="login-page">
-                        <div class="card card-elevated" style="padding:32px;max-width:400px;text-align:center;">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2" style="margin:0 auto 16px;">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            <h2 style="margin-bottom:8px;">Failed to initialize</h2>
-                            <p style="color:var(--text-secondary);margin-bottom:20px;">${err.message}</p>
-                            <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
-                        </div>
-                    </div>
-                `;
+                const errorEl = cloneTemplate('tpl-error');
+                errorEl.querySelector('.error-message').textContent = err.message;
+                document.getElementById('app').innerHTML = '';
+                document.getElementById('app').appendChild(errorEl);
             }
         }
 
         init();
     </script>
+
+    <!-- ============== HTML Templates ============== -->
+    
+    <!-- Toast Template -->
+    <template id="tpl-toast">
+        <div class="toast">
+            <svg class="toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+            <span class="toast-message"></span>
+        </div>
+    </template>
+    
+    <!-- Login Page Template -->
+    <template id="tpl-login">
+        <div class="login-page">
+            <div class="login-container">
+                <div class="login-header">
+                    <div class="login-logo"><img src="/images/pins-logo.svg" alt="Pins"></div>
+                    <h1 class="login-title">Pins</h1>
+                    <p class="login-subtitle">AT Protocol File Storage</p>
+                </div>
+                
+                <div class="card card-elevated login-card">
+                    <form class="login-form" id="loginForm">
+                        <div class="form-group">
+                            <label class="form-label">Your Bluesky Handle</label>
+                            <div class="input-wrapper">
+                                <span class="input-prefix">@</span>
+                                <input 
+                                    type="text" 
+                                    class="input input-with-prefix" 
+                                    id="handleInput" 
+                                    placeholder="username.bsky.social" 
+                                    required 
+                                    autocomplete="username"
+                                    autofocus
+                                />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10 17 15 12 10 7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                            Sign in with Bluesky
+                        </button>
+                    </form>
+                    
+                    <div class="login-footer">
+                        <svg class="login-footer-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <p class="login-footer-text">
+                            <strong>Secure OAuth Authentication</strong><br>
+                            Your credentials never leave your PDS. We only receive authorized access tokens.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Dashboard Template -->
+    <template id="tpl-dashboard">
+        <div class="dashboard">
+            <nav class="navbar">
+                <div class="navbar-inner">
+                    <div class="navbar-brand">
+                        <div class="navbar-logo"><img src="/images/pins-logo.svg" alt="Pins"></div>
+                        <span>Pins</span>
+                    </div>
+                    <div class="navbar-user">
+                        <div class="user-info">
+                            <div class="user-handle" id="userHandle"></div>
+                            <div class="user-did" id="userDid"></div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="signOutBtn">Sign Out</button>
+                    </div>
+                </div>
+            </nav>
+            
+            <main class="main-content">
+                <div class="dashboard-grid">
+                    <div class="sidebar">
+                        <!-- Upload Card -->
+                        <div class="card upload-card">
+                            <div class="upload-header">
+                                <div class="upload-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="upload-title">Upload Files</div>
+                                    <div class="upload-subtitle">Max 1MB each • Multiple files OK</div>
+                                </div>
+                            </div>
+                            
+                            <div class="dropzone" id="dropzone">
+                                <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                <p class="dropzone-text">Drop files here or click to browse</p>
+                                <p class="dropzone-hint">PNG, JPG, PDF, or any file • Multiple selection</p>
+                                <input type="file" id="fileInput" style="display:none;" multiple />
+                            </div>
+                            
+                            <div id="uploadPreview" style="display:none;"></div>
+                            <div id="uploadQueueContainer"></div>
+                        </div>
+                        
+                        <!-- Stats Card -->
+                        <div class="card stats-card">
+                            <div class="stats-header">
+                                <span class="stats-title">Storage Overview</span>
+                                <button class="btn btn-ghost btn-sm btn-icon" id="refreshBtn" title="Refresh">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"/>
+                                        <polyline points="1 20 1 14 7 14"/>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="statPinned">0</div>
+                                    <div class="stat-label">📌 Pinned</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="statOther">0</div>
+                                    <div class="stat-label">🔗 Other</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="statTotal">0</div>
+                                    <div class="stat-label">Total</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Blobs Grid -->
+                    <div class="card blobs-section">
+                        <div class="blobs-header">
+                            <h2 class="blobs-title">
+                                Your Blobs
+                                <span class="badge badge-primary blobs-count" id="blobsCount">0</span>
+                            </h2>
+                        </div>
+                        
+                        <!-- Search & Filter Bar -->
+                        <div class="search-filter-bar">
+                            <div class="search-input-wrapper">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input 
+                                    type="text" 
+                                    class="search-input" 
+                                    id="searchInput"
+                                    placeholder="Search by filename or CID..." 
+                                />
+                            </div>
+                            <div class="filter-tabs" id="filterTabs">
+                                <button class="filter-tab active" data-filter="all">All</button>
+                                <button class="filter-tab" data-filter="pinned">📌 Pinned</button>
+                                <button class="filter-tab" data-filter="images">🖼️ Images</button>
+                                <button class="filter-tab" data-filter="documents">📄 Docs</button>
+                            </div>
+                        </div>
+                        
+                        <div id="blobsContent"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </template>
+    
+    <!-- Loading State Template -->
+    <template id="tpl-loading">
+        <div class="loading-state">
+            <div class="spinner spinner-lg"></div>
+            <div class="loading-text">Loading your blobs...</div>
+        </div>
+    </template>
+    
+    <!-- Empty State Template -->
+    <template id="tpl-empty">
+        <div class="empty-state">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <h3 class="empty-title"></h3>
+            <p class="empty-text"></p>
+        </div>
+    </template>
+    
+    <!-- Blob Item Template -->
+    <template id="tpl-blob-item">
+        <div class="blob-item">
+            <div class="blob-badge"></div>
+            <div class="blob-thumbnail">
+                <img class="blob-thumb-img" loading="lazy" />
+                <div class="blob-thumbnail-placeholder"></div>
+            </div>
+            <div class="blob-info">
+                <div class="blob-filename"></div>
+                <div class="blob-type-badge"></div>
+                <div class="blob-cid mono"></div>
+                <div class="blob-actions">
+                    <button class="btn btn-ghost btn-sm copy-cid-btn" title="Copy CID">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-ghost btn-sm copy-url-btn" title="Copy URL">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                    </button>
+                    <a class="btn btn-ghost btn-sm download-btn" target="_blank" title="Download">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </a>
+                    <button class="btn btn-ghost btn-sm delete-btn" title="Delete" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Preview Modal Template -->
+    <template id="tpl-preview-modal">
+        <div class="modal-overlay" id="previewModal">
+            <div class="modal-content">
+                <button class="modal-close" id="closeModal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                <div class="modal-preview-container"></div>
+                <div class="modal-info">
+                    <strong class="modal-filename"></strong>
+                    <a class="modal-link" target="_blank">Open in new tab</a>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- File Preview Template -->
+    <template id="tpl-file-preview">
+        <div class="file-preview">
+            <div class="file-preview-icon"></div>
+            <div class="file-preview-info">
+                <div class="file-preview-name"></div>
+                <div class="file-preview-size"></div>
+            </div>
+            <div class="file-preview-actions">
+                <button class="btn btn-ghost btn-sm" id="clearFileBtn">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="uploadBtn">Upload</button>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Upload Queue Template -->
+    <template id="tpl-upload-queue">
+        <div class="upload-queue">
+            <div class="upload-queue-header">
+                <span></span>
+            </div>
+            <div class="upload-queue-list"></div>
+        </div>
+    </template>
+    
+    <!-- Upload Queue Item Template -->
+    <template id="tpl-upload-queue-item">
+        <div class="upload-queue-item">
+            <div class="spinner"></div>
+            <span class="upload-queue-item-name"></span>
+        </div>
+    </template>
+    
+    <!-- Error State Template -->
+    <template id="tpl-error">
+        <div class="login-page">
+            <div class="card card-elevated" style="padding:32px;max-width:400px;text-align:center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2" style="margin:0 auto 16px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h2 style="margin-bottom:8px;">Failed to initialize</h2>
+                <p class="error-message" style="color:var(--text-secondary);margin-bottom:20px;"></p>
+                <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+            </div>
+        </div>
+    </template>
 </body>
 </html>

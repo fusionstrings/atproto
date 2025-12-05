@@ -12,6 +12,7 @@ class PreviewModal extends BaseComponent {
         super();
         this.isOpen = false;
         this.currentBlob = null;
+        this.textContent = null;
     }
 
     render() {
@@ -58,6 +59,15 @@ class PreviewModal extends BaseComponent {
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
+                    flex-wrap: wrap;
+                    min-width: 0;
+                }
+
+                .modal-filename {
+                    max-width: 300px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
 
                 .modal-title .badge {
@@ -67,6 +77,7 @@ class PreviewModal extends BaseComponent {
                     border-radius: 0.25rem;
                     font-size: 0.75rem;
                     font-weight: 500;
+                    white-space: nowrap;
                 }
 
                 .modal-actions {
@@ -106,6 +117,34 @@ class PreviewModal extends BaseComponent {
                 .preview-content audio {
                     width: 400px;
                     max-width: 100%;
+                }
+
+                .text-preview {
+                    background: rgba(0, 0, 0, 0.5);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 0.75rem;
+                    padding: 1.5rem;
+                    max-width: 900px;
+                    width: 100%;
+                    max-height: calc(100vh - 200px);
+                    overflow: auto;
+                }
+
+                .text-preview pre {
+                    margin: 0;
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.875rem;
+                    line-height: 1.6;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    color: rgba(255, 255, 255, 0.9);
+                }
+
+                .text-preview.loading {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 200px;
                 }
 
                 .preview-placeholder {
@@ -181,6 +220,10 @@ class PreviewModal extends BaseComponent {
                     .footer-actions {
                         flex-direction: column;
                     }
+
+                    .modal-filename {
+                        max-width: 150px;
+                    }
                 }
             </style>
             <div class="modal-backdrop" id="backdrop"></div>
@@ -245,18 +288,23 @@ class PreviewModal extends BaseComponent {
     renderContent() {
         if (!this.currentBlob) return;
 
-        const { cid, mimeType, size } = this.currentBlob;
+        const { cid, mimeType, size, filename } = this.currentBlob;
         const did = store.getState().did;
         const cdnUrl = getCdnUrl(did, cid);
         const rawUrl = getRawBlobUrl(did, cid);
         const isImage = mimeType?.startsWith('image/');
         const isVideo = mimeType?.startsWith('video/');
         const isAudio = mimeType?.startsWith('audio/');
-        const isPdf = mimeType === 'application/pdf';
+        const isText = mimeType?.startsWith('text/') || 
+                       mimeType?.includes('json') || 
+                       mimeType?.includes('xml') ||
+                       mimeType?.includes('javascript') ||
+                       mimeType?.includes('typescript');
 
-        // Update title
+        // Update title with filename if available
+        const displayName = filename || `blob-${cid.substring(0, 8)}`;
         this.$('#modalTitle').innerHTML = `
-            Preview
+            <span class="modal-filename" title="${displayName}">${displayName}</span>
             <span class="badge">${mimeType || 'Unknown'}</span>
             <span class="badge">${formatBytes(size)}</span>
         `;
@@ -267,7 +315,7 @@ class PreviewModal extends BaseComponent {
         if (isImage) {
             body.innerHTML = `
                 <div class="preview-content">
-                    <img src="${cdnUrl}" alt="Preview" />
+                    <img src="${cdnUrl}" alt="${displayName}" />
                 </div>
             `;
         } else if (isVideo) {
@@ -282,6 +330,14 @@ class PreviewModal extends BaseComponent {
                     <audio src="${rawUrl}" controls autoplay></audio>
                 </div>
             `;
+        } else if (isText) {
+            body.innerHTML = `
+                <div class="text-preview loading">
+                    <span class="loading loading-lg"></span>
+                </div>
+            `;
+            // Fetch and display text content
+            this.loadTextContent(rawUrl);
         } else {
             body.innerHTML = `
                 <div class="preview-placeholder">
@@ -348,13 +404,43 @@ class PreviewModal extends BaseComponent {
         this.$('#downloadBtn').addEventListener('click', () => {
             const link = document.createElement('a');
             link.href = rawUrl;
-            link.download = `blob-${cid.substring(0, 8)}`;
+            link.download = filename || `blob-${cid.substring(0, 8)}`;
             link.click();
         });
 
         this.$('#openTabBtn').addEventListener('click', () => {
-            window.open(cdnUrl, '_blank');
+            globalThis.open(cdnUrl, '_blank');
         });
+    }
+
+    async loadTextContent(url) {
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            this.textContent = text;
+            
+            const container = this.$('.text-preview');
+            if (container) {
+                container.classList.remove('loading');
+                // Limit displayed text to avoid performance issues
+                const displayText = text.length > 100000 
+                    ? text.substring(0, 100000) + '\n\n... (truncated, file too large to display fully)'
+                    : text;
+                container.innerHTML = `<pre>${this.escapeHtml(displayText)}</pre>`;
+            }
+        } catch (error) {
+            const container = this.$('.text-preview');
+            if (container) {
+                container.classList.remove('loading');
+                container.innerHTML = `<pre style="color: rgba(255,100,100,0.8);">Failed to load text content: ${error.message}</pre>`;
+            }
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     disconnectedCallback() {

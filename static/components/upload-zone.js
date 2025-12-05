@@ -3,8 +3,8 @@
  */
 
 import { BaseComponent } from './base-component.js';
-import { store } from '../js/store.js';
 import { blobService } from '../js/blob-service.js';
+import { pinService } from '../js/pin-service.js';
 import { showToast } from './toast-notification.js';
 import { formatBytes, getFileIcon } from '../js/utils.js';
 
@@ -243,10 +243,10 @@ class UploadZone extends BaseComponent {
 
     handleFile(file) {
         // Validate file size (1MB limit)
-        if (file.size > 1024 * 1024) {
-            showToast('File size exceeds 1MB limit', 'error');
-            return;
-        }
+        // if (file.size > 1024 * 1024) {
+        //     showToast('File size exceeds 1MB limit', 'error');
+        //     return;
+        // }
 
         this.selectedFile = file;
         
@@ -349,6 +349,18 @@ class UploadZone extends BaseComponent {
 
             const response = await blobService.uploadBlob(file);
 
+            progressFill.style.width = '60%';
+            progressText.textContent = 'Creating pin record...';
+
+            // Create a pin record to persist the blob with metadata
+            const blobRef = response.blob;
+            await pinService.createPin({
+                mimeType: file.type || 'application/octet-stream',
+                filename: file.name,
+                size: file.size,
+                blobRef: blobRef
+            });
+
             progressFill.style.width = '100%';
             progressText.textContent = 'Complete!';
 
@@ -391,10 +403,10 @@ class UploadZone extends BaseComponent {
                 });
             }, 500);
 
-            showToast('File uploaded successfully!', 'success');
+            showToast('File pinned successfully!', 'success');
             
-            // Refresh blob list
-            await blobService.listBlobs();
+            // Refresh blob list using pinService to get all blobs
+            await pinService.loadAllBlobs();
 
         } catch (error) {
             resultContainer.innerHTML = '';
