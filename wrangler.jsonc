@@ -6,5 +6,11 @@
         "directory": "public",
         "binding": "ASSETS"
     },
-    "compatibility_date":"2025-12-05"
+    "compatibility_date":"2025-12-05",
+    "routes": [
+        {
+            "pattern": "@.fusionstrings.com",
+            "custom_domain": true
+        }
+    ],
 }
