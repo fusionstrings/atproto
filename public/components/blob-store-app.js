@@ -1,9 +1,10 @@
 /**
- * Main App Shell - Clean, minimal architecture
+ * Main App Shell - Clean, template-based architecture with signals
  */
 
+import { effect } from 'usignal';
 import { BaseComponent } from './base-component.js';
-import { store } from '../js/store.js';
+import { auth, clearAuth } from '../js/state.js';
 import { oauthService } from '../js/oauth-service.js';
 import { pinService } from '../js/pin-service.js';
 import { icons } from '../js/icons.js';
@@ -16,178 +17,30 @@ import './blob-item.js';
 import './preview-modal.js';
 
 class BlobStoreApp extends BaseComponent {
+    static templateId = 'blob-store-app-template';
+
     async connectedCallback() {
         super.connectedCallback();
+        
+        // React to auth changes
+        this.cleanup = effect(() => {
+            const { isAuthenticated } = auth.value;
+            this.updateView();
+        });
+        
         await this.initializeApp();
     }
 
-    subscribeToStore() {
-        this.storeUnsubscribe = store.subscribe((state, prevState) => {
-            if (state.isAuthenticated !== prevState.isAuthenticated) {
-                this.updateView();
-            }
-        });
-    }
-
-    render() {
-        this.shadowRoot.innerHTML = `
-            ${this.getBaseStyles()}
-            <style>
-                :host {
-                    display: block;
-                    min-height: 100vh;
-                }
-
-                .app {
-                    max-width: 960px;
-                    margin: 0 auto;
-                    padding: 0 1.5rem;
-                }
-
-                /* Header */
-                .header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 1.25rem 0;
-                    border-bottom: 1px solid var(--border-subtle);
-                    margin-bottom: 2rem;
-                }
-
-                .brand {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.625rem;
-                }
-
-                .brand-icon {
-                    width: 32px;
-                    height: 32px;
-                    color: var(--accent);
-                }
-
-                .brand-icon svg {
-                    width: 100%;
-                    height: 100%;
-                }
-
-                .brand-name {
-                    font-size: 1.125rem;
-                    font-weight: 700;
-                    color: var(--text-primary);
-                }
-
-                .user-area {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .user-handle {
-                    font-size: 0.875rem;
-                    color: var(--text-secondary);
-                }
-
-                /* Login View */
-                .login-view {
-                    min-height: calc(100vh - 100px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .login-card {
-                    width: 100%;
-                    max-width: 400px;
-                    padding: 2.5rem;
-                    background: var(--bg-elevated);
-                    border: 1px solid var(--border-subtle);
-                    border-radius: var(--radius-xl);
-                }
-
-                .login-header {
-                    text-align: center;
-                    margin-bottom: 2rem;
-                }
-
-                .login-header h1 {
-                    font-size: 1.5rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .login-header p {
-                    color: var(--text-secondary);
-                    font-size: 0.9375rem;
-                }
-
-                /* Dashboard */
-                .dashboard {
-                    padding-bottom: 4rem;
-                }
-
-                .section {
-                    margin-bottom: 2.5rem;
-                }
-
-                .section-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 1rem;
-                }
-
-                .section-title {
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    color: var(--text-secondary);
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                /* Init Loading */
-                .init-loading {
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 1rem;
-                }
-
-                .init-loading p {
-                    color: var(--text-muted);
-                    font-size: 0.875rem;
-                }
-
-                /* Error State */
-                .error-state {
-                    text-align: center;
-                    color: var(--error);
-                }
-
-                .error-state p {
-                    margin-top: 0.5rem;
-                    color: var(--text-secondary);
-                    font-size: 0.875rem;
-                }
-            </style>
-
-            <div class="app" id="app">
-                <div class="init-loading">
-                    <div class="spinner"></div>
-                    <p>Initializing...</p>
-                </div>
-            </div>
-            <preview-modal></preview-modal>
-        `;
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.cleanup?.();
     }
 
     async initializeApp() {
         try {
             await oauthService.init();
-            this.updateView();
 
-            if (store.getState().isAuthenticated) {
+            if (auth.value.isAuthenticated) {
                 await pinService.loadAllBlobs();
             }
         } catch (error) {
@@ -207,10 +60,10 @@ class BlobStoreApp extends BaseComponent {
     }
 
     updateView() {
-        const state = store.getState();
+        const { isAuthenticated, userHandle } = auth.value;
         const app = this.$('#app');
 
-        if (!state.isAuthenticated) {
+        if (!isAuthenticated) {
             // Login View
             app.innerHTML = `
                 <div class="login-view">
@@ -236,7 +89,7 @@ class BlobStoreApp extends BaseComponent {
                         <span class="brand-name">Pins</span>
                     </div>
                     <div class="user-area">
-                        <span class="user-handle">@${state.userHandle || 'user'}</span>
+                        <span class="user-handle">@${userHandle || 'user'}</span>
                         <button class="btn btn-ghost btn-sm" id="signOutBtn">
                             Sign out
                         </button>
@@ -257,7 +110,6 @@ class BlobStoreApp extends BaseComponent {
                 </main>
             `;
 
-            // Sign out handler
             this.$('#signOutBtn')?.addEventListener('click', async () => {
                 await oauthService.signOut();
             });

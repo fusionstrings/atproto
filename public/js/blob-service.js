@@ -2,52 +2,49 @@
  * Blob Service - Handles blob operations with the PDS
  */
 
-import { store } from './store.js';
+import { auth, isLoadingBlobs, setBlobs, setBlobMeta, getBlobMeta, setUploading, upload } from './state.js';
 import { getRawBlobUrl, getCdnUrl } from './utils.js';
 
 class BlobService {
     // List blobs for the current user
     async listBlobs(reset = false) {
-        const { agent, userDid, blobCursor } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
         }
 
-        store.setLoadingBlobs(true);
+        isLoadingBlobs.value = true;
 
         try {
             const params = { did: userDid, limit: 50 };
-            if (!reset && blobCursor) {
-                params.cursor = blobCursor;
-            }
 
             const response = await agent.com.atproto.sync.listBlobs(params);
             const blobs = response.data.cids || [];
-            const cursor = response.data.cursor;
 
-            store.setBlobs(blobs, cursor, !reset);
+            setBlobs(blobs, !reset);
 
             // Try to load metadata for new blobs
             this.loadBlobMetadata(blobs);
 
-            return { blobs, cursor };
+            isLoadingBlobs.value = false;
+            return { blobs };
         } catch (error) {
             console.error('Failed to list blobs:', error);
-            store.setLoadingBlobs(false);
+            isLoadingBlobs.value = false;
             throw error;
         }
     }
 
     // Upload a blob
     async uploadBlob(file, onProgress) {
-        const { agent } = store.state;
+        const { agent } = auth.value;
         
         if (!agent) {
             throw new Error('Not authenticated');
         }
 
-        store.setUploading(true, 0);
+        setUploading(true, 0, file.name);
 
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -55,10 +52,10 @@ class BlobService {
 
             // Simulate progress since the API doesn't provide it
             const progressInterval = setInterval(() => {
-                const currentProgress = store.state.uploadProgress;
+                const currentProgress = upload.value.progress;
                 if (currentProgress < 90) {
                     const newProgress = currentProgress + Math.random() * 15;
-                    store.setUploading(true, Math.min(newProgress, 90));
+                    setUploading(true, Math.min(newProgress, 90), file.name);
                     onProgress?.(Math.min(newProgress, 90));
                 }
             }, 200);
@@ -68,7 +65,7 @@ class BlobService {
             });
 
             clearInterval(progressInterval);
-            store.setUploading(true, 100);
+            setUploading(true, 100, file.name);
             onProgress?.(100);
 
             const result = {
@@ -79,18 +76,17 @@ class BlobService {
             };
 
             // Cache metadata
-            store.setBlobMetadata(result.cid, {
+            setBlobMeta(result.cid, {
                 mimeType: result.mimeType,
                 size: result.size,
                 uploadedAt: result.uploadedAt,
             });
 
-            store.setUploadResult(result);
-            store.setUploading(false, 0);
+            setUploading(false, 0, null);
 
             return result;
         } catch (error) {
-            store.setUploading(false, 0);
+            setUploading(false, 0, null);
             console.error('Upload error:', error);
             throw error;
         }
@@ -98,12 +94,12 @@ class BlobService {
 
     // Load metadata for blobs (tries CDN for images, HEAD request for others)
     async loadBlobMetadata(cids) {
-        const { userDid } = store.state;
+        const { userDid } = auth.value;
         if (!userDid) return;
 
         for (const cid of cids) {
             // Skip if already have metadata
-            if (store.getBlobMetadata(cid).mimeType) continue;
+            if (getBlobMeta(cid).mimeType) continue;
 
             // Try to detect if it's an image via CDN
             this.tryLoadImageMetadata(cid, userDid);
@@ -116,7 +112,7 @@ class BlobService {
         
         const img = new Image();
         img.onload = () => {
-            store.setBlobMetadata(cid, { 
+            setBlobMeta(cid, { 
                 mimeType: 'image/*',
                 isImage: true,
             });
@@ -129,7 +125,7 @@ class BlobService {
 
     // Fetch blob content for preview
     async fetchBlobContent(cid) {
-        const { userDid } = store.state;
+        const { userDid } = auth.value;
         if (!userDid) throw new Error('Not authenticated');
 
         const url = getRawBlobUrl(userDid, cid);
@@ -140,7 +136,7 @@ class BlobService {
         const contentLength = headResponse.headers.get('content-length');
 
         // Update metadata
-        store.setBlobMetadata(cid, {
+        setBlobMeta(cid, {
             mimeType: contentType,
             size: contentLength ? parseInt(contentLength) : undefined,
         });
@@ -154,7 +150,7 @@ class BlobService {
 
     // Get blob URLs
     getBlobUrls(cid) {
-        const { userDid } = store.state;
+        const { userDid } = auth.value;
         if (!userDid) return null;
 
         return {

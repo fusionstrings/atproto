@@ -2,6 +2,51 @@
  * Utility functions for the Blob Store application
  */
 
+import { icons } from './icons.js';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DOM Utilities for Web Components
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Query selector within a root (shadowRoot or element) */
+export const $ = (root, selector) => root.querySelector(selector);
+
+/** Query selector all within a root */
+export const $$ = (root, selector) => root.querySelectorAll(selector);
+
+/** Emit a custom event that bubbles and crosses shadow DOM */
+export function emit(element, name, detail = {}) {
+    element.dispatchEvent(new CustomEvent(name, {
+        bubbles: true,
+        composed: true,
+        detail,
+    }));
+}
+
+/** Clone a template by ID into a shadow root */
+export function cloneTemplate(templateId, shadowRoot) {
+    const template = document.getElementById(templateId);
+    if (template) {
+        shadowRoot.appendChild(template.content.cloneNode(true));
+    } else {
+        console.warn(`Template #${templateId} not found`);
+    }
+}
+
+/** Replace [data-icon] placeholders with SVG icons */
+export function hydrateIcons(root) {
+    $$(root, '[data-icon]').forEach(slot => {
+        const iconName = slot.dataset.icon;
+        if (iconName && icons[iconName]) {
+            slot.innerHTML = icons[iconName];
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Formatting Utilities
+// ═══════════════════════════════════════════════════════════════════════════
+
 // Format bytes to human readable
 export function formatBytes(bytes, decimals = 1) {
     if (!+bytes) return '0 B';

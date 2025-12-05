@@ -1,0 +1,144 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CARD STYLES
+   Card and container component styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.card-interactive {
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.card-interactive:hover {
+    border-color: var(--color-border-default);
+    box-shadow: var(--shadow-md);
+}
+
+.card-selected {
+    border-color: var(--color-accent);
+    background: var(--color-accent-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CARD SECTIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.card-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.card-body {
+    padding: var(--space-4);
+}
+
+.card-footer {
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INFO BOX
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.info-box {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-accent-muted);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    color: var(--color-text-secondary);
+}
+
+.info-box svg {
+    width: 16px;
+    height: 16px;
+    color: var(--color-accent);
+    flex-shrink: 0;
+    margin-top: var(--space-1);
+}
+
+.info-box-success {
+    background: var(--color-success-muted);
+}
+
+.info-box-success svg {
+    color: var(--color-success);
+}
+
+.info-box-error {
+    background: var(--color-error-muted);
+}
+
+.info-box-error svg {
+    color: var(--color-error);
+}
+
+.info-box-warning {
+    background: var(--color-warning-muted);
+}
+
+.info-box-warning svg {
+    color: var(--color-warning);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   STATS BAR
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.stats-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EMPTY STATE
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.empty-state {
+    text-align: center;
+    padding: var(--space-12) var(--space-8);
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-4);
+    opacity: 0.4;
+}
+
+.empty-state h3 {
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+    font-size: var(--text-sm);
+}

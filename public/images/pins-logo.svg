@@ -1,63 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Lines -->
-  <g stroke="black" stroke-width="2" stroke-linecap="round">
-    <!-- Top to Row 1 -->
-    <line x1="50" y1="10" x2="30" y2="25" />
-    <line x1="50" y1="10" x2="50" y2="25" />
-    <line x1="50" y1="10" x2="70" y2="25" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Network dome (top curved section with nodes) -->
+  <g>
+    <!-- Curved horizontal arcs -->
+    <path d="M20 35 Q35 28 50 28 Q65 28 80 35" fill="none"/>
+    <path d="M15 45 Q32 35 50 35 Q68 35 85 45" fill="none"/>
     
-    <!-- Row 1 Horizontal -->
-    <line x1="30" y1="25" x2="50" y2="25" />
-    <line x1="50" y1="25" x2="70" y2="25" />
+    <!-- Top node connections -->
+    <line x1="50" y1="15" x2="35" y2="28"/>
+    <line x1="50" y1="15" x2="50" y2="28"/>
+    <line x1="50" y1="15" x2="65" y2="28"/>
     
-    <!-- Row 1 to Row 2 -->
-    <line x1="30" y1="25" x2="15" y2="45" />
-    <line x1="30" y1="25" x2="35" y2="45" />
-    <line x1="50" y1="25" x2="35" y2="45" />
-    <line x1="50" y1="25" x2="65" y2="45" />
-    <line x1="70" y1="25" x2="65" y2="45" />
-    <line x1="70" y1="25" x2="85" y2="45" />
+    <!-- Cross connections in dome -->
+    <line x1="35" y1="28" x2="25" y2="38"/>
+    <line x1="35" y1="28" x2="42" y2="38"/>
+    <line x1="50" y1="28" x2="42" y2="38"/>
+    <line x1="50" y1="28" x2="58" y2="38"/>
+    <line x1="65" y1="28" x2="58" y2="38"/>
+    <line x1="65" y1="28" x2="75" y2="38"/>
     
-    <!-- Row 2 Horizontal -->
-    <line x1="15" y1="45" x2="35" y2="45" />
-    <line x1="35" y1="45" x2="65" y2="45" />
-    <line x1="65" y1="45" x2="85" y2="45" />
-    
-    <!-- Row 2 to Row 3 -->
-    <line x1="15" y1="45" x2="30" y2="65" />
-    <line x1="35" y1="45" x2="30" y2="65" />
-    <line x1="35" y1="45" x2="50" y2="65" />
-    <line x1="65" y1="45" x2="50" y2="65" />
-    <line x1="65" y1="45" x2="70" y2="65" />
-    <line x1="85" y1="45" x2="70" y2="65" />
-    
-    <!-- Row 3 Horizontal -->
-    <line x1="30" y1="65" x2="50" y2="65" />
-    <line x1="50" y1="65" x2="70" y2="65" />
-    
-    <!-- Row 3 to Bottom -->
-    <line x1="30" y1="65" x2="50" y2="95" />
-    <line x1="50" y1="65" x2="50" y2="95" />
-    <line x1="70" y1="65" x2="50" y2="95" />
+    <!-- Second row connections -->
+    <line x1="25" y1="38" x2="20" y2="50"/>
+    <line x1="25" y1="38" x2="35" y2="50"/>
+    <line x1="42" y1="38" x2="35" y2="50"/>
+    <line x1="42" y1="38" x2="50" y2="50"/>
+    <line x1="58" y1="38" x2="50" y2="50"/>
+    <line x1="58" y1="38" x2="65" y2="50"/>
+    <line x1="75" y1="38" x2="65" y2="50"/>
+    <line x1="75" y1="38" x2="80" y2="50"/>
   </g>
   
-  <!-- Nodes -->
-  <g fill="white" stroke="black" stroke-width="2">
-    <circle cx="50" cy="10" r="3" />
+  <!-- Diamond/crystal body (lower faceted section) -->
+  <g>
+    <!-- Outer edges of diamond -->
+    <line x1="20" y1="50" x2="50" y2="115"/>
+    <line x1="80" y1="50" x2="50" y2="115"/>
+    <line x1="20" y1="50" x2="80" y2="50"/>
     
-    <circle cx="30" cy="25" r="3" />
-    <circle cx="50" cy="25" r="3" />
-    <circle cx="70" cy="25" r="3" />
+    <!-- Inner facet lines -->
+    <line x1="35" y1="50" x2="50" y2="115"/>
+    <line x1="50" y1="50" x2="50" y2="115"/>
+    <line x1="65" y1="50" x2="50" y2="115"/>
     
-    <circle cx="15" cy="45" r="3" />
-    <circle cx="35" cy="45" r="3" />
-    <circle cx="65" cy="45" r="3" />
-    <circle cx="85" cy="45" r="3" />
+    <!-- Horizontal facet divisions -->
+    <line x1="27" y1="65" x2="73" y2="65"/>
+    <line x1="35" y1="80" x2="65" y2="80"/>
+    <line x1="42" y1="95" x2="58" y2="95"/>
     
-    <circle cx="30" cy="65" r="3" />
-    <circle cx="50" cy="65" r="3" />
-    <circle cx="70" cy="65" r="3" />
+    <!-- Cross facets -->
+    <line x1="20" y1="50" x2="35" y2="65"/>
+    <line x1="35" y1="50" x2="27" y2="65"/>
+    <line x1="35" y1="50" x2="50" y2="65"/>
+    <line x1="50" y1="50" x2="35" y2="65"/>
+    <line x1="50" y1="50" x2="65" y2="65"/>
+    <line x1="65" y1="50" x2="50" y2="65"/>
+    <line x1="65" y1="50" x2="73" y2="65"/>
+    <line x1="80" y1="50" x2="65" y2="65"/>
     
-    <circle cx="50" cy="95" r="3" />
+    <line x1="27" y1="65" x2="35" y2="80"/>
+    <line x1="35" y1="65" x2="35" y2="80"/>
+    <line x1="50" y1="65" x2="50" y2="80"/>
+    <line x1="65" y1="65" x2="65" y2="80"/>
+    <line x1="73" y1="65" x2="65" y2="80"/>
+  </g>
+  
+  <!-- Nodes (circles at intersections) -->
+  <g fill="currentColor" stroke="none">
+    <!-- Top node -->
+    <circle cx="50" cy="15" r="4"/>
+    
+    <!-- First row -->
+    <circle cx="35" cy="28" r="3.5"/>
+    <circle cx="50" cy="28" r="3.5"/>
+    <circle cx="65" cy="28" r="3.5"/>
+    
+    <!-- Second row -->
+    <circle cx="25" cy="38" r="3"/>
+    <circle cx="42" cy="38" r="3"/>
+    <circle cx="58" cy="38" r="3"/>
+    <circle cx="75" cy="38" r="3"/>
+    
+    <!-- Third row (top of diamond) -->
+    <circle cx="20" cy="50" r="3"/>
+    <circle cx="35" cy="50" r="3"/>
+    <circle cx="50" cy="50" r="3"/>
+    <circle cx="65" cy="50" r="3"/>
+    <circle cx="80" cy="50" r="3"/>
   </g>
 </svg>

@@ -1,0 +1,19 @@
+{
+  "name": "pins-atproto",
+  "version": "1.0.0",
+  "description": "AT Protocol file storage app",
+  "type": "module",
+  "exports": "./public/js/app.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "usignal": "^0.10.0",
+    "@atproto/api": "^0.15.8",
+    "@atproto/oauth-client-browser": "^0.3.36"
+  },
+  "devDependencies": {
+    "wrangler": "^4.53.0"
+  }
+}

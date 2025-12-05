@@ -2,7 +2,7 @@
  * OAuth Service - Handles AT Protocol OAuth authentication
  */
 
-import { store } from './store.js';
+import { auth, setAuthenticated, setInitialized, clearAuth } from './state.js';
 
 class OAuthService {
     constructor() {
@@ -15,8 +15,8 @@ class OAuthService {
         try {
             // Dynamic imports for AT Protocol libraries
             const [{ BrowserOAuthClient }, { Agent }] = await Promise.all([
-                import('https://esm.sh/@atproto/oauth-client-browser@0.3.36'),
-                import('https://esm.sh/@atproto/api@0.15.8'),
+                import('@atproto/oauth-client-browser'),
+                import('@atproto/api'),
             ]);
             
             this.BrowserOAuthClient = BrowserOAuthClient;
@@ -65,7 +65,16 @@ class OAuthService {
             }
 
             // Check for existing session or OAuth callback
-            const result = await this.client.init();
+            let result;
+            try {
+                result = await this.client.init();
+            } catch (initError) {
+                // Token refresh failed (expired/revoked) - clear invalid session
+                console.warn('Session expired or invalid, clearing auth:', initError.message);
+                clearAuth();
+                setInitialized();
+                return { authenticated: false };
+            }
             
             if (result) {
                 const { session } = result;
@@ -80,16 +89,25 @@ class OAuthService {
                         handle = profile?.data?.handle;
                     }
                 } catch (err) {
+                    // Profile fetch failed - could be auth issue
+                    if (err?.status === 401 || err?.message?.includes('401')) {
+                        console.warn('Auth invalid during profile fetch, clearing session');
+                        clearAuth();
+                        setInitialized();
+                        return { authenticated: false };
+                    }
                     console.warn('Could not fetch profile for handle:', err);
                 }
                 
-                store.setAuthenticated(session, agent, handle);
+                setAuthenticated(session, agent, handle);
                 return { authenticated: true, session };
             }
             
+            setInitialized();
             return { authenticated: false };
         } catch (error) {
             console.error('OAuth init error:', error);
+            setInitialized();
             throw error;
         }
     }
@@ -117,7 +135,7 @@ class OAuthService {
     }
 
     async signOut() {
-        const { session } = store.state;
+        const { session } = auth.value;
         if (session) {
             try {
                 await session.signOut();
@@ -125,7 +143,12 @@ class OAuthService {
                 console.error('Sign out error:', error);
             }
         }
-        store.clearAuth();
+        clearAuth();
+    }
+
+    // Alias for consistency
+    logout() {
+        return this.signOut();
     }
 }
 

@@ -3,7 +3,8 @@
  * Uses the com.fusionstrings.pins lexicon for persistent storage
  */
 
-import { store } from './store.js';
+import { auth, blobs, blobMetadata, isLoadingBlobs, setBlobs, setBlobMeta } from './state.js';
+import { batch } from 'usignal';
 
 const COLLECTION = 'com.fusionstrings.pins';
 
@@ -17,7 +18,7 @@ class PinService {
      * @param {Object} params.blobRef - The blob reference from upload
      */
     async createPin({ mimeType, filename, size, blobRef }) {
-        const { agent, userDid } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
@@ -57,7 +58,7 @@ class PinService {
      * @param {number} options.limit - Number of records to fetch
      */
     async listPins({ cursor, limit = 100 } = {}) {
-        const { agent, userDid } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
@@ -104,7 +105,7 @@ class PinService {
      * @param {string} rkey - The record key to delete
      */
     async deletePin(rkey) {
-        const { agent, userDid } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
@@ -128,7 +129,7 @@ class PinService {
      * @param {string} rkey - The record key
      */
     async getPin(rkey) {
-        const { agent, userDid } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
@@ -164,13 +165,13 @@ class PinService {
      * Load all pins and merge with orphan blobs from repo
      */
     async loadAllBlobs() {
-        const { agent, userDid } = store.state;
+        const { agent, userDid } = auth.value;
         
         if (!agent || !userDid) {
             throw new Error('Not authenticated');
         }
 
-        store.setLoadingBlobs(true);
+        isLoadingBlobs.value = true;
 
         try {
             // Fetch all pins
@@ -214,19 +215,31 @@ class PinService {
                 }));
 
             // Combine pins first, then other blobs
-            const allBlobs = [...allPins, ...otherBlobs];
+            const allBlobsList = [...allPins, ...otherBlobs];
 
-            // Update store
-            store.setState({
-                blobs: allBlobs,
-                pinnedCount: allPins.length,
-                otherCount: otherBlobs.length,
-                isLoadingBlobs: false,
+            // Update state using signals
+            batch(() => {
+                // Set blob CIDs list
+                setBlobs(allBlobsList.map(b => b.cid));
+                
+                // Set metadata for each blob
+                allBlobsList.forEach(blob => {
+                    setBlobMeta(blob.cid, {
+                        rkey: blob.rkey,
+                        mimeType: blob.mimeType,
+                        filename: blob.filename,
+                        size: blob.size,
+                        createdAt: blob.createdAt ? new Date(blob.createdAt).getTime() : Date.now(),
+                        isPinned: blob.isPinned,
+                    });
+                });
+                
+                isLoadingBlobs.value = false;
             });
 
-            return allBlobs;
+            return allBlobsList;
         } catch (error) {
-            store.setLoadingBlobs(false);
+            isLoadingBlobs.value = false;
             throw error;
         }
     }
