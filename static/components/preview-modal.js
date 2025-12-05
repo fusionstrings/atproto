@@ -6,6 +6,7 @@ import { BaseComponent } from './base-component.js';
 import { store } from '../js/store.js';
 import { getCdnUrl, getRawBlobUrl, formatBytes, copyToClipboard } from '../js/utils.js';
 import { showToast } from './toast-notification.js';
+import { icons } from '../js/icons.js';
 
 class PreviewModal extends BaseComponent {
     constructor() {
@@ -225,6 +226,23 @@ class PreviewModal extends BaseComponent {
                         max-width: 150px;
                     }
                 }
+
+                .btn svg {
+                    width: 18px;
+                    height: 18px;
+                }
+
+                .btn-sm svg {
+                    width: 16px;
+                    height: 16px;
+                }
+
+                .preview-placeholder svg {
+                    width: 80px;
+                    height: 80px;
+                    margin-bottom: 1rem;
+                    opacity: 0.5;
+                }
             </style>
             <div class="modal-backdrop" id="backdrop"></div>
             <div class="modal-container">
@@ -232,10 +250,7 @@ class PreviewModal extends BaseComponent {
                     <div class="modal-title" id="modalTitle">Preview</div>
                     <div class="modal-actions">
                         <button class="btn btn-ghost" id="closeBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            ${icons.x}
                         </button>
                     </div>
                 </div>
@@ -289,7 +304,7 @@ class PreviewModal extends BaseComponent {
         if (!this.currentBlob) return;
 
         const { cid, mimeType, size, filename } = this.currentBlob;
-        const did = store.getState().did;
+        const did = store.getState().userDid;
         const cdnUrl = getCdnUrl(did, cid);
         const rawUrl = getRawBlobUrl(did, cid);
         const isImage = mimeType?.startsWith('image/');
@@ -341,10 +356,7 @@ class PreviewModal extends BaseComponent {
         } else {
             body.innerHTML = `
                 <div class="preview-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
+                    ${icons.file}
                     <h3>Preview not available</h3>
                     <p>This file type cannot be previewed. Use the download button below.</p>
                 </div>
@@ -357,34 +369,20 @@ class PreviewModal extends BaseComponent {
                 <span class="cid-label">CID:</span>
                 <span class="cid-value">${cid}</span>
                 <button class="btn btn-ghost btn-sm" id="copyCidBtn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
+                    ${icons.copy}
                 </button>
             </div>
             <div class="footer-actions">
                 <button class="btn btn-ghost" id="copyLinkBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                    </svg>
+                    ${icons.link}
                     Copy Link
                 </button>
                 <button class="btn btn-ghost" id="downloadBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
+                    ${icons.download}
                     Download
                 </button>
                 <button class="btn btn-primary" id="openTabBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
+                    ${icons.externalLink}
                     Open in Tab
                 </button>
             </div>

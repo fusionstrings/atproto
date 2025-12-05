@@ -1,95 +1,65 @@
 /**
- * Base Component - Abstract base class for all web components
+ * Base Component - Clean, minimal base class
  */
-
-import { store } from '../js/store.js';
 
 export class BaseComponent extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
-        this._subscriptions = [];
     }
 
-    // Called when component is added to DOM
     connectedCallback() {
         this.render();
         this.setupEventListeners();
+        if (this.subscribeToStore) {
+            this.subscribeToStore();
+        }
     }
 
-    // Called when component is removed from DOM
     disconnectedCallback() {
-        this.cleanup();
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+        }
     }
 
-    // Subscribe to store changes
-    subscribe(eventName, handler) {
-        const boundHandler = handler.bind(this);
-        store.addEventListener(eventName, boundHandler);
-        this._subscriptions.push({ eventName, handler: boundHandler });
-    }
-
-    // Cleanup subscriptions
-    cleanup() {
-        this._subscriptions.forEach(({ eventName, handler }) => {
-            store.removeEventListener(eventName, handler);
-        });
-        this._subscriptions = [];
-    }
-
-    // Get shared styles (DaisyUI classes won't work in shadow DOM, so we use Tailwind directly)
     getBaseStyles() {
         return `
             <style>
-                :host {
-                    display: block;
-                }
-                
-                * {
+                /* Reset */
+                *, *::before, *::after {
                     box-sizing: border-box;
                 }
 
+                :host {
+                    display: block;
+                }
+
+                /* Typography */
+                h1, h2, h3, h4 {
+                    margin: 0;
+                    font-weight: 600;
+                    line-height: 1.3;
+                    letter-spacing: -0.02em;
+                }
+
+                p { margin: 0; }
+
+                /* Buttons */
                 .btn {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
                     gap: 0.5rem;
-                    padding: 0.5rem 1rem;
+                    padding: 0.625rem 1rem;
                     font-size: 0.875rem;
                     font-weight: 500;
-                    border-radius: 0.5rem;
+                    font-family: inherit;
+                    border-radius: var(--radius-md);
+                    border: 1px solid transparent;
                     cursor: pointer;
-                    transition: all 0.2s;
-                    border: none;
+                    transition: all var(--transition-fast);
                     outline: none;
-                }
-
-                .btn-primary {
-                    background: oklch(65.69% 0.196 275.75);
-                    color: white;
-                }
-
-                .btn-primary:hover {
-                    background: oklch(55.69% 0.196 275.75);
-                }
-
-                .btn-ghost {
-                    background: transparent;
-                    color: inherit;
-                }
-
-                .btn-ghost:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                }
-
-                .btn-sm {
-                    padding: 0.25rem 0.5rem;
-                    font-size: 0.75rem;
-                }
-
-                .btn-square {
-                    padding: 0.5rem;
-                    aspect-ratio: 1;
+                    text-decoration: none;
                 }
 
                 .btn:disabled {
@@ -97,76 +67,122 @@ export class BaseComponent extends HTMLElement {
                     cursor: not-allowed;
                 }
 
+                .btn-primary {
+                    background: var(--accent);
+                    color: white;
+                    border-color: var(--accent);
+                }
+
+                .btn-primary:hover:not(:disabled) {
+                    background: var(--accent-hover);
+                    border-color: var(--accent-hover);
+                }
+
+                .btn-secondary {
+                    background: var(--bg-elevated);
+                    color: var(--text-primary);
+                    border-color: var(--border-default);
+                }
+
+                .btn-secondary:hover:not(:disabled) {
+                    background: var(--bg-subtle);
+                    border-color: var(--border-strong);
+                }
+
+                .btn-ghost {
+                    background: transparent;
+                    color: var(--text-secondary);
+                }
+
+                .btn-ghost:hover:not(:disabled) {
+                    background: var(--bg-elevated);
+                    color: var(--text-primary);
+                }
+
+                .btn-danger {
+                    background: transparent;
+                    color: var(--error);
+                    border-color: transparent;
+                }
+
+                .btn-danger:hover:not(:disabled) {
+                    background: rgba(239, 68, 68, 0.1);
+                }
+
+                .btn-sm {
+                    padding: 0.375rem 0.75rem;
+                    font-size: 0.8125rem;
+                }
+
+                .btn-icon {
+                    padding: 0.5rem;
+                    border-radius: var(--radius-sm);
+                }
+
+                .btn svg {
+                    width: 16px;
+                    height: 16px;
+                    flex-shrink: 0;
+                }
+
+                /* Inputs */
                 .input {
-                    padding: 0.5rem 1rem;
-                    border-radius: 0.5rem;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    background: rgba(0, 0, 0, 0.2);
-                    color: inherit;
-                    font-size: 0.875rem;
                     width: 100%;
+                    padding: 0.625rem 0.875rem;
+                    font-size: 0.9375rem;
+                    font-family: inherit;
+                    color: var(--text-primary);
+                    background: var(--bg-base);
+                    border: 1px solid var(--border-default);
+                    border-radius: var(--radius-md);
+                    outline: none;
+                    transition: all var(--transition-fast);
+                }
+
+                .input:hover {
+                    border-color: var(--border-strong);
                 }
 
                 .input:focus {
-                    outline: 2px solid oklch(65.69% 0.196 275.75);
-                    outline-offset: 2px;
+                    border-color: var(--accent);
+                    box-shadow: 0 0 0 3px var(--accent-muted);
                 }
 
+                .input::placeholder {
+                    color: var(--text-muted);
+                }
+
+                /* Cards */
                 .card {
-                    background: oklch(25.33% 0.016 252.42);
-                    border-radius: 1rem;
-                    padding: 1.5rem;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border-subtle);
+                    border-radius: var(--radius-lg);
                 }
 
-                .alert {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 0.75rem;
-                    padding: 1rem;
-                    border-radius: 0.5rem;
-                }
-
-                .alert-info {
-                    background: rgba(58, 191, 248, 0.1);
-                    border: 1px solid rgba(58, 191, 248, 0.3);
-                }
-
-                .alert-success {
-                    background: rgba(74, 222, 128, 0.1);
-                    border: 1px solid rgba(74, 222, 128, 0.3);
-                }
-
-                .alert-error {
-                    background: rgba(248, 114, 114, 0.1);
-                    border: 1px solid rgba(248, 114, 114, 0.3);
-                }
-
-                .badge {
-                    display: inline-flex;
-                    align-items: center;
-                    padding: 0.125rem 0.5rem;
-                    font-size: 0.75rem;
-                    border-radius: 9999px;
-                    background: rgba(255, 255, 255, 0.1);
-                }
-
-                .loading {
-                    display: inline-block;
-                    width: 1.5rem;
-                    height: 1.5rem;
-                    border: 2px solid rgba(255, 255, 255, 0.2);
-                    border-top-color: oklch(65.69% 0.196 275.75);
+                /* Loading */
+                .spinner {
+                    width: 20px;
+                    height: 20px;
+                    border: 2px solid var(--border-default);
+                    border-top-color: var(--accent);
                     border-radius: 50%;
-                    animation: spin 0.8s linear infinite;
+                    animation: spin 0.6s linear infinite;
                 }
 
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
 
-                .hidden {
-                    display: none !important;
+                /* Utilities */
+                .sr-only {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    border: 0;
                 }
 
                 .truncate {
@@ -175,117 +191,32 @@ export class BaseComponent extends HTMLElement {
                     white-space: nowrap;
                 }
 
-                .font-mono {
-                    font-family: ui-monospace, monospace;
+                .mono {
+                    font-family: 'JetBrains Mono', monospace;
                 }
-
-                .text-sm {
-                    font-size: 0.875rem;
-                }
-
-                .text-xs {
-                    font-size: 0.75rem;
-                }
-
-                .text-muted {
-                    opacity: 0.7;
-                }
-
-                .flex {
-                    display: flex;
-                }
-
-                .flex-col {
-                    flex-direction: column;
-                }
-
-                .items-center {
-                    align-items: center;
-                }
-
-                .justify-center {
-                    justify-content: center;
-                }
-
-                .justify-between {
-                    justify-content: space-between;
-                }
-
-                .gap-1 { gap: 0.25rem; }
-                .gap-2 { gap: 0.5rem; }
-                .gap-3 { gap: 0.75rem; }
-                .gap-4 { gap: 1rem; }
-
-                .p-2 { padding: 0.5rem; }
-                .p-3 { padding: 0.75rem; }
-                .p-4 { padding: 1rem; }
-
-                .mb-2 { margin-bottom: 0.5rem; }
-                .mb-4 { margin-bottom: 1rem; }
-                .mt-4 { margin-top: 1rem; }
-
-                .w-full { width: 100%; }
-                .min-w-0 { min-width: 0; }
-                .flex-1 { flex: 1; }
-
-                .rounded { border-radius: 0.5rem; }
-                .rounded-lg { border-radius: 0.75rem; }
-
-                .overflow-hidden { overflow: hidden; }
-                .overflow-auto { overflow: auto; }
-
-                .cursor-pointer { cursor: pointer; }
-                .pointer-events-none { pointer-events: none; }
-
-                .opacity-50 { opacity: 0.5; }
-
-                .transition {
-                    transition: all 0.2s;
-                }
-
-                /* Scrollbar styling */
-                ::-webkit-scrollbar {
-                    width: 8px;
-                    height: 8px;
-                }
-                ::-webkit-scrollbar-track {
-                    background: rgba(0, 0, 0, 0.1);
-                    border-radius: 4px;
-                }
-                ::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 4px;
-                }
-                ::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                }
-            </style>
+            <\/style>
         `;
     }
 
-    // Abstract method - must be implemented by subclasses
     render() {
         throw new Error('render() must be implemented');
     }
 
-    // Optional - override to setup event listeners
     setupEventListeners() {}
 
-    // Helper to emit custom events
-    emit(eventName, detail = {}) {
-        this.dispatchEvent(new CustomEvent(eventName, {
-            bubbles: true,
-            composed: true,
-            detail,
-        }));
-    }
-
-    // Helper to query shadow DOM
     $(selector) {
         return this.shadowRoot.querySelector(selector);
     }
 
     $$(selector) {
         return this.shadowRoot.querySelectorAll(selector);
+    }
+
+    emit(name, detail = {}) {
+        this.dispatchEvent(new CustomEvent(name, {
+            bubbles: true,
+            composed: true,
+            detail,
+        }));
     }
 }

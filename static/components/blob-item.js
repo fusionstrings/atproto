@@ -1,406 +1,408 @@
 /**
- * Blob Item Component - Individual blob card with actions
+ * Blob Item - Individual file card with selection and preview support
  */
 
 import { BaseComponent } from './base-component.js';
 import { store } from '../js/store.js';
 import { pinService } from '../js/pin-service.js';
-import { getCdnUrl, getRawBlobUrl, formatBytes, getFileIcon, copyToClipboard, formatMimeType } from '../js/utils.js';
 import { showToast } from './toast-notification.js';
+import { icons, getFileIcon } from '../js/icons.js';
 
 class BlobItem extends BaseComponent {
     static get observedAttributes() {
-        return ['cid', 'mimetype', 'size', 'filename', 'rkey', 'pinned', 'selected', 'selectable'];
+        return ['cid', 'mimetype', 'size', 'filename', 'rkey', 'selectable', 'selected'];
     }
 
-    get cid() {
-        return this.getAttribute('cid');
-    }
-
-    get mimeType() {
-        return this.getAttribute('mimetype') || 'application/octet-stream';
-    }
-
-    get size() {
-        return parseInt(this.getAttribute('size') || '0', 10);
-    }
-
-    get filename() {
-        return this.getAttribute('filename') || '';
-    }
-
-    get rkey() {
-        return this.getAttribute('rkey') || '';
-    }
-
-    get pinned() {
-        return this.hasAttribute('pinned');
-    }
-
-    get selected() {
-        return this.hasAttribute('selected');
-    }
-
-    set selected(value) {
-        if (value) {
-            this.setAttribute('selected', '');
-        } else {
-            this.removeAttribute('selected');
-        }
-    }
-
-    get selectable() {
-        return this.hasAttribute('selectable');
-    }
+    get cid() { return this.getAttribute('cid'); }
+    get mimeType() { return this.getAttribute('mimetype'); }
+    get size() { return parseInt(this.getAttribute('size')) || 0; }
+    get filename() { return this.getAttribute('filename'); }
+    get rkey() { return this.getAttribute('rkey'); }
+    get selectable() { return this.hasAttribute('selectable'); }
+    get selected() { return this.hasAttribute('selected'); }
 
     render() {
-        const cid = this.cid;
-        const mimeType = this.mimeType;
-        const size = this.size;
-        const filename = this.filename;
-        const isPinned = this.pinned;
-        const isImage = mimeType.startsWith('image/');
-        const isVideo = mimeType.startsWith('video/');
-        const cdnUrl = getCdnUrl(store.getState().did, cid);
-        const rawUrl = getRawBlobUrl(store.getState().did, cid);
-        const iconSvg = getFileIcon(mimeType);
+        const isImage = this.mimeType?.startsWith('image/');
+        const { userDid } = store.getState();
+        
+        const cdnUrl = userDid && this.cid 
+            ? `https://cdn.bsky.app/img/feed_thumbnail/plain/${userDid}/${this.cid}@jpeg`
+            : null;
 
         this.shadowRoot.innerHTML = `
             ${this.getBaseStyles()}
             <style>
                 .blob-card {
-                    background: rgba(0, 0, 0, 0.3);
-                    border-radius: 0.75rem;
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border-subtle);
+                    border-radius: var(--radius-lg);
                     overflow: hidden;
-                    transition: all 0.2s ease;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    transition: all var(--transition-fast);
+                    cursor: pointer;
                     position: relative;
                 }
 
                 .blob-card:hover {
-                    border-color: rgba(255, 255, 255, 0.2);
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+                    border-color: var(--border-default);
+                    box-shadow: var(--shadow-md);
                 }
 
-                .blob-card.pinned {
-                    border-color: rgba(101, 105, 240, 0.3);
+                .blob-card.selected {
+                    border-color: var(--accent);
+                    background: var(--accent-muted);
                 }
 
-                .pin-badge {
+                /* Selection checkbox */
+                .select-checkbox {
                     position: absolute;
-                    top: 0.5rem;
-                    right: 0.5rem;
-                    background: oklch(65.69% 0.196 275.75);
-                    color: white;
-                    padding: 0.25rem;
-                    border-radius: 50%;
-                    z-index: 1;
-                    display: flex;
+                    top: 0.75rem;
+                    left: 0.75rem;
+                    z-index: 10;
+                    width: 20px;
+                    height: 20px;
+                    background: var(--bg-base);
+                    border: 2px solid var(--border-strong);
+                    border-radius: 4px;
+                    display: none;
                     align-items: center;
                     justify-content: center;
+                    cursor: pointer;
+                    transition: all var(--transition-fast);
                 }
 
-                .pin-badge svg {
+                .blob-card.selectable .select-checkbox {
+                    display: flex;
+                }
+
+                .select-checkbox.checked {
+                    background: var(--accent);
+                    border-color: var(--accent);
+                }
+
+                .select-checkbox svg {
                     width: 12px;
                     height: 12px;
+                    color: white;
+                    display: none;
                 }
 
+                .select-checkbox.checked svg {
+                    display: block;
+                }
+
+                /* Thumbnail */
                 .thumbnail {
                     aspect-ratio: 16/10;
-                    background: rgba(0, 0, 0, 0.3);
+                    background: var(--bg-subtle);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    overflow: hidden;
                     position: relative;
-                    cursor: pointer;
+                    overflow: hidden;
                 }
 
-                .thumbnail img,
-                .thumbnail video {
+                .thumbnail img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
+                    transition: transform 0.3s ease;
                 }
 
-                .thumbnail svg {
-                    width: 48px;
-                    height: 48px;
-                    color: oklch(65.69% 0.196 275.75);
-                    opacity: 0.7;
+                .blob-card:hover .thumbnail img {
+                    transform: scale(1.05);
                 }
 
-                .thumbnail-overlay {
+                .thumbnail-icon {
+                    color: var(--text-muted);
+                    width: 32px;
+                    height: 32px;
+                }
+
+                .thumbnail-icon svg {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                /* Preview overlay */
+                .preview-overlay {
                     position: absolute;
                     inset: 0;
-                    background: rgba(0, 0, 0, 0.5);
+                    background: rgba(0, 0, 0, 0.6);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     opacity: 0;
-                    transition: opacity 0.2s ease;
+                    transition: opacity var(--transition-fast);
                 }
 
-                .thumbnail:hover .thumbnail-overlay {
+                .blob-card:hover .preview-overlay {
                     opacity: 1;
                 }
 
-                .thumbnail-overlay svg {
-                    width: 36px;
-                    height: 36px;
-                    color: white;
-                    opacity: 1;
-                }
-
-                .blob-info {
-                    padding: 0.75rem;
-                }
-
-                .blob-filename {
-                    font-size: 0.8rem;
+                .preview-btn {
+                    padding: 0.5rem 1rem;
+                    background: white;
+                    color: black;
+                    border: none;
+                    border-radius: var(--radius-md);
+                    font-size: 0.8125rem;
                     font-weight: 500;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    margin-bottom: 0.25rem;
-                    color: white;
-                }
-
-                .blob-cid {
-                    font-family: monospace;
-                    font-size: 0.65rem;
-                    color: rgba(255, 255, 255, 0.5);
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    margin-bottom: 0.25rem;
-                }
-
-                .blob-meta {
+                    cursor: pointer;
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
-                    font-size: 0.75rem;
+                    gap: 0.375rem;
                 }
 
-                .blob-type {
-                    background: rgba(101, 105, 240, 0.2);
-                    color: oklch(75% 0.15 275);
-                    padding: 0.125rem 0.5rem;
-                    border-radius: 0.25rem;
-                    font-weight: 500;
-                }
-
-                .blob-size {
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .blob-actions {
-                    display: flex;
-                    gap: 0.25rem;
-                    padding: 0 0.75rem 0.75rem;
-                }
-
-                .blob-actions .btn {
-                    flex: 1;
-                    padding: 0.375rem 0.5rem;
-                    font-size: 0.75rem;
-                }
-
-                .blob-actions .btn svg {
+                .preview-btn svg {
                     width: 14px;
                     height: 14px;
                 }
 
-                .btn-danger {
-                    color: oklch(65% 0.2 25);
+                /* Info */
+                .info {
+                    padding: 0.75rem;
                 }
 
-                .btn-danger:hover {
-                    background: rgba(239, 68, 68, 0.2);
-                    color: oklch(70% 0.2 25);
+                .filename {
+                    font-size: 0.8125rem;
+                    font-weight: 500;
+                    color: var(--text-primary);
+                    margin-bottom: 0.25rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
 
-                .selection-checkbox {
-                    position: absolute;
-                    top: 0.5rem;
-                    left: 0.5rem;
-                    z-index: 2;
-                    opacity: 0;
-                    transition: opacity 0.2s ease;
+                .meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 0.6875rem;
+                    color: var(--text-muted);
                 }
 
-                .blob-card:hover .selection-checkbox,
-                .blob-card.selected .selection-checkbox,
-                :host([selectable]) .selection-checkbox {
-                    opacity: 1;
+                .cid {
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.625rem;
+                    color: var(--text-muted);
+                    margin-top: 0.375rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
 
-                .selection-checkbox input {
-                    width: 18px;
-                    height: 18px;
+                /* Actions */
+                .actions {
+                    display: flex;
+                    gap: 0.125rem;
+                    padding: 0.5rem 0.75rem 0.75rem;
+                    border-top: 1px solid var(--border-subtle);
+                }
+
+                .action-btn {
+                    flex: 1;
+                    padding: 0.375rem;
+                    background: transparent;
+                    border: none;
+                    color: var(--text-secondary);
                     cursor: pointer;
-                    accent-color: oklch(65.69% 0.196 275.75);
+                    border-radius: var(--radius-sm);
+                    transition: all var(--transition-fast);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.25rem;
+                    font-size: 0.6875rem;
+                    font-family: inherit;
                 }
 
-                .blob-card.selected {
-                    border-color: oklch(65.69% 0.196 275.75);
-                    background: rgba(101, 105, 240, 0.1);
+                .action-btn:hover {
+                    background: var(--bg-subtle);
+                    color: var(--text-primary);
+                }
+
+                .action-btn.danger:hover {
+                    background: rgba(239, 68, 68, 0.1);
+                    color: var(--error);
+                }
+
+                .action-btn svg {
+                    width: 14px;
+                    height: 14px;
                 }
             </style>
-            <div class="blob-card ${isPinned ? 'pinned' : ''} ${this.selected ? 'selected' : ''}">
-                <div class="selection-checkbox">
-                    <input type="checkbox" id="selectCheckbox" ${this.selected ? 'checked' : ''} />
+
+            <div class="blob-card ${this.selectable ? 'selectable' : ''} ${this.selected ? 'selected' : ''}" id="card">
+                <div class="select-checkbox ${this.selected ? 'checked' : ''}" id="checkbox">
+                    ${icons.check}
                 </div>
-                ${isPinned ? `
-                    <div class="pin-badge" title="Pinned">
-                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
-                        </svg>
-                    </div>
-                ` : ''}
+                
                 <div class="thumbnail" id="thumbnail">
-                    ${isImage ? `<img src="${cdnUrl}" alt="Blob preview" loading="lazy" />` : ''}
-                    ${isVideo ? `<video src="${rawUrl}" preload="metadata"></video>` : ''}
-                    ${!isImage && !isVideo ? iconSvg : ''}
-                    <div class="thumbnail-overlay">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                    </div>
-                </div>
-                <div class="blob-info">
-                    ${filename ? `<div class="blob-filename" title="${filename}">${filename}</div>` : ''}
-                    <div class="blob-cid" title="${cid}">${cid}</div>
-                    <div class="blob-meta">
-                        <span class="blob-type">${formatMimeType(mimeType)}</span>
-                        <span class="blob-size">${formatBytes(size)}</span>
-                    </div>
-                </div>
-                <div class="blob-actions">
-                    <button class="btn btn-ghost" id="copyBtn" title="Copy CID">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                    </button>
-                    <button class="btn btn-ghost" id="downloadBtn" title="Download">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                    </button>
-                    <button class="btn btn-ghost" id="openBtn" title="Open in new tab">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                    </button>
-                    ${isPinned ? `
-                        <button class="btn btn-ghost btn-danger" id="deleteBtn" title="Delete pin">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                    ${isImage && cdnUrl 
+                        ? `<img src="${cdnUrl}" alt="${this.filename || 'Image'}" loading="lazy" />`
+                        : `<div class="thumbnail-icon">${getFileIcon(this.mimeType)}</div>`
+                    }
+                    <div class="preview-overlay">
+                        <button class="preview-btn" id="previewBtn">
+                            ${icons.externalLink}
+                            Preview
                         </button>
-                    ` : ''}
+                    </div>
+                </div>
+                
+                <div class="info">
+                    <div class="filename" title="${this.filename || this.cid}">${this.filename || 'Unnamed file'}</div>
+                    <div class="meta">
+                        <span>${this.formatBytes(this.size)}</span>
+                        <span>•</span>
+                        <span>${this.getMimeLabel()}</span>
+                    </div>
+                    <div class="cid" title="${this.cid}">${this.cid}</div>
+                </div>
+
+                <div class="actions">
+                    <button class="action-btn" id="copyBtn" title="Copy CID">
+                        ${icons.copy}
+                        Copy
+                    </button>
+                    <button class="action-btn" id="downloadBtn" title="Download">
+                        ${icons.download}
+                        Download
+                    </button>
+                    <button class="action-btn danger" id="deleteBtn" title="Delete">
+                        ${icons.trash}
+                    </button>
                 </div>
             </div>
         `;
     }
 
     setupEventListeners() {
-        const cid = this.cid;
-        const filename = this.filename;
-        const rkey = this.rkey;
-        const rawUrl = getRawBlobUrl(store.getState().did, cid);
-        const cdnUrl = getCdnUrl(store.getState().did, cid);
+        const card = this.$('#card');
+        const checkbox = this.$('#checkbox');
 
-        // Selection checkbox
-        this.$('#selectCheckbox').addEventListener('change', (e) => {
+        // Selection toggle
+        if (this.selectable) {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.action-btn') || e.target.closest('.preview-btn')) return;
+                this.toggleSelection();
+            });
+
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSelection();
+            });
+        }
+
+        // Preview
+        this.$('#previewBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.selected = e.target.checked;
-            this.dispatchEvent(new CustomEvent('selection-change', {
-                detail: { cid, rkey, selected: this.selected, filename, size: this.size },
-                bubbles: true,
-                composed: true
-            }));
-        });
-
-        // Thumbnail click - preview
-        this.$('#thumbnail').addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('preview', {
-                detail: { cid, mimeType: this.mimeType, size: this.size, filename },
-                bubbles: true,
-                composed: true
-            }));
+            this.openPreview();
         });
 
         // Copy CID
         this.$('#copyBtn').addEventListener('click', async (e) => {
             e.stopPropagation();
-            await copyToClipboard(cid);
-            showToast('CID copied to clipboard!', 'success');
+            try {
+                await navigator.clipboard.writeText(this.cid);
+                showToast('CID copied!', 'success');
+            } catch {
+                showToast('Failed to copy', 'error');
+            }
         });
 
         // Download
         this.$('#downloadBtn').addEventListener('click', (e) => {
             e.stopPropagation();
-            const link = document.createElement('a');
-            link.href = rawUrl;
-            link.download = filename || `blob-${cid.substring(0, 8)}`;
-            link.click();
-            showToast('Download started', 'info');
+            const { userDid } = store.getState();
+            if (userDid && this.cid) {
+                const url = `https://cdn.bsky.app/img/feed_fullsize/plain/${userDid}/${this.cid}@jpeg`;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.filename || `blob-${this.cid.substring(0, 8)}`;
+                a.click();
+            }
         });
 
-        // Open in new tab
-        this.$('#openBtn').addEventListener('click', (e) => {
+        // Delete
+        this.$('#deleteBtn').addEventListener('click', async (e) => {
             e.stopPropagation();
-            globalThis.open(cdnUrl, '_blank');
+            if (!this.rkey) {
+                showToast('Cannot delete this file', 'error');
+                return;
+            }
+
+            if (!confirm(`Delete "${this.filename || 'this file'}"?`)) {
+                return;
+            }
+
+            const btn = this.$('#deleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
+
+            try {
+                await pinService.deletePin(this.rkey);
+                showToast('File deleted', 'success');
+                await pinService.loadAllBlobs();
+            } catch (error) {
+                showToast('Delete failed: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = icons.trash;
+            }
         });
-
-        // Delete button (only for pinned blobs)
-        const deleteBtn = this.$('#deleteBtn');
-        if (deleteBtn && rkey) {
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                
-                // Confirm deletion
-                if (!confirm(`Delete "${filename || cid.substring(0, 16)}..."?`)) {
-                    return;
-                }
-
-                deleteBtn.disabled = true;
-                deleteBtn.innerHTML = '<span class="loading"></span>';
-
-                try {
-                    await pinService.deletePin(rkey);
-                    showToast('Blob deleted successfully', 'success');
-                    // Refresh the list
-                    await pinService.loadAllBlobs();
-                } catch (error) {
-                    showToast('Failed to delete: ' + error.message, 'error');
-                    deleteBtn.disabled = false;
-                    deleteBtn.innerHTML = `
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    `;
-                }
-            });
-        }
     }
 
-    attributeChangedCallback(_name, oldValue, newValue) {
-        if (oldValue !== newValue && this.shadowRoot.innerHTML) {
-            this.render();
-            this.setupEventListeners();
+    toggleSelection() {
+        const isSelected = !this.selected;
+        if (isSelected) {
+            this.setAttribute('selected', '');
+        } else {
+            this.removeAttribute('selected');
         }
+        
+        this.$('#card').classList.toggle('selected', isSelected);
+        this.$('#checkbox').classList.toggle('checked', isSelected);
+
+        this.emit('selection-change', {
+            cid: this.cid,
+            rkey: this.rkey,
+            filename: this.filename,
+            size: this.size,
+            selected: isSelected,
+        });
+    }
+
+    openPreview() {
+        const event = new CustomEvent('preview', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                cid: this.cid,
+                mimeType: this.mimeType,
+                filename: this.filename,
+                size: this.size,
+            },
+        });
+        document.dispatchEvent(event);
+    }
+
+    formatBytes(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    getMimeLabel() {
+        const mime = this.mimeType || '';
+        if (mime.startsWith('image/')) return 'Image';
+        if (mime.startsWith('video/')) return 'Video';
+        if (mime.startsWith('audio/')) return 'Audio';
+        if (mime.includes('pdf')) return 'PDF';
+        if (mime.includes('json')) return 'JSON';
+        if (mime.startsWith('text/')) return 'Text';
+        return 'File';
     }
 }
 

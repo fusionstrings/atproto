@@ -45,7 +45,20 @@ class OAuthService {
             if (result) {
                 const { session } = result;
                 const agent = new this.Agent(session);
-                store.setAuthenticated(session, agent);
+                
+                // Fetch the user's profile to get their handle
+                let handle = null;
+                try {
+                    const did = session?.sub || session?.did;
+                    if (did) {
+                        const profile = await agent.getProfile({ actor: did });
+                        handle = profile?.data?.handle;
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch profile for handle:', err);
+                }
+                
+                store.setAuthenticated(session, agent, handle);
                 return { authenticated: true, session };
             }
             

@@ -36,7 +36,7 @@ export function getFileIcon(mimeType) {
 }
 
 // Get human readable mime type label
-export function getMimeTypeLabel(mimeType) {
+export function formatMimeType(mimeType) {
     if (!mimeType) return 'Unknown';
     const parts = mimeType.split('/');
     const subtype = parts[1]?.split(';')[0] || parts[0];

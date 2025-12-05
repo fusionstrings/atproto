@@ -48,6 +48,16 @@ class Store extends EventTarget {
         return this._state;
     }
 
+    getState() {
+        return this._state;
+    }
+
+    subscribe(listener) {
+        const wrapper = (e) => listener(e.detail.newState, e.detail.oldState);
+        this.addEventListener('statechange', wrapper);
+        return () => this.removeEventListener('statechange', wrapper);
+    }
+
     setState(updates) {
         const oldState = { ...this._state };
         this._state = { ...this._state, ...updates };
@@ -66,9 +76,9 @@ class Store extends EventTarget {
     }
 
     // Auth actions
-    setAuthenticated(session, agent) {
+    setAuthenticated(session, agent, handle = null) {
         const userDid = session?.sub || session?.did;
-        const userHandle = session?.info?.handle || userDid?.substring(0, 20) + '...';
+        const userHandle = handle || session?.info?.handle || userDid?.substring(0, 20) + '...';
         
         this.setState({
             isAuthenticated: true,

@@ -1,14 +1,14 @@
 /**
- * Blob Store App - Main application shell
+ * Main App Shell - Clean, minimal architecture
  */
 
 import { BaseComponent } from './base-component.js';
 import { store } from '../js/store.js';
 import { oauthService } from '../js/oauth-service.js';
 import { pinService } from '../js/pin-service.js';
+import { icons } from '../js/icons.js';
 
-// Import all components
-import './app-header.js';
+// Import components
 import './login-form.js';
 import './upload-zone.js';
 import './blob-list.js';
@@ -36,100 +36,145 @@ class BlobStoreApp extends BaseComponent {
                 :host {
                     display: block;
                     min-height: 100vh;
-                    background: linear-gradient(135deg, 
-                        oklch(20% 0.02 270) 0%, 
-                        oklch(15% 0.03 280) 50%,
-                        oklch(18% 0.025 260) 100%
-                    );
                 }
 
-                .app-container {
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .main-content {
-                    flex: 1;
-                    max-width: 1200px;
+                .app {
+                    max-width: 960px;
                     margin: 0 auto;
+                    padding: 0 1.5rem;
+                }
+
+                /* Header */
+                .header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 1.25rem 0;
+                    border-bottom: 1px solid var(--border-subtle);
+                    margin-bottom: 2rem;
+                }
+
+                .brand {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.625rem;
+                }
+
+                .brand-icon {
+                    width: 32px;
+                    height: 32px;
+                    color: var(--accent);
+                }
+
+                .brand-icon svg {
                     width: 100%;
-                    padding: 2rem 1rem;
+                    height: 100%;
                 }
 
-                .login-wrapper {
+                .brand-name {
+                    font-size: 1.125rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                .user-area {
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    min-height: calc(100vh - 80px);
-                    padding: 2rem;
-                }
-
-                .login-card {
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 1.5rem;
-                    padding: 2.5rem;
-                    width: 100%;
-                    max-width: 480px;
-                    backdrop-filter: blur(10px);
-                }
-
-                .dashboard {
-                    display: grid;
-                    gap: 1.5rem;
-                }
-
-                .dashboard-section {
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 1rem;
-                    backdrop-filter: blur(10px);
-                    overflow: hidden;
-                }
-
-                .section-header {
-                    padding: 1rem 1.5rem;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-weight: 600;
-                }
-
-                .section-header svg {
-                    width: 20px;
-                    height: 20px;
-                    color: oklch(65.69% 0.196 275.75);
-                }
-
-                .init-loading {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
                     gap: 1rem;
                 }
 
-                .init-loading .loading {
-                    width: 48px;
-                    height: 48px;
+                .user-handle {
+                    font-size: 0.875rem;
+                    color: var(--text-secondary);
+                }
+
+                /* Login View */
+                .login-view {
+                    min-height: calc(100vh - 100px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .login-card {
+                    width: 100%;
+                    max-width: 400px;
+                    padding: 2.5rem;
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border-subtle);
+                    border-radius: var(--radius-xl);
+                }
+
+                .login-header {
+                    text-align: center;
+                    margin-bottom: 2rem;
+                }
+
+                .login-header h1 {
+                    font-size: 1.5rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                .login-header p {
+                    color: var(--text-secondary);
+                    font-size: 0.9375rem;
+                }
+
+                /* Dashboard */
+                .dashboard {
+                    padding-bottom: 4rem;
+                }
+
+                .section {
+                    margin-bottom: 2.5rem;
+                }
+
+                .section-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 1rem;
+                }
+
+                .section-title {
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                /* Init Loading */
+                .init-loading {
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 1rem;
                 }
 
                 .init-loading p {
-                    color: rgba(255, 255, 255, 0.6);
+                    color: var(--text-muted);
+                    font-size: 0.875rem;
                 }
 
-                @media (min-width: 1024px) {
-                    .dashboard {
-                        grid-template-columns: 400px 1fr;
-                    }
+                /* Error State */
+                .error-state {
+                    text-align: center;
+                    color: var(--error);
+                }
+
+                .error-state p {
+                    margin-top: 0.5rem;
+                    color: var(--text-secondary);
+                    font-size: 0.875rem;
                 }
             </style>
-            <div class="app-container" id="appContainer">
-                <div class="init-loading" id="initLoading">
-                    <span class="loading"></span>
+
+            <div class="app" id="app">
+                <div class="init-loading">
+                    <div class="spinner"></div>
                     <p>Initializing...</p>
                 </div>
             </div>
@@ -138,73 +183,84 @@ class BlobStoreApp extends BaseComponent {
     }
 
     async initializeApp() {
-        const loading = this.$('#initLoading');
-
         try {
-            // Initialize OAuth
             await oauthService.init();
-            
-            // Remove loading state
-            loading.remove();
-            
-            // Render appropriate view
             this.updateView();
 
-            // If authenticated, load blobs
             if (store.getState().isAuthenticated) {
                 await pinService.loadAllBlobs();
             }
-
         } catch (error) {
-            console.error('App initialization failed:', error);
-            loading.innerHTML = `
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="oklch(65% 0.2 25)" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <p style="color: oklch(65% 0.2 25);">Failed to initialize app</p>
-                <p style="font-size: 0.875rem; color: rgba(255,255,255,0.5);">${error.message}</p>
-                <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+            console.error('Init failed:', error);
+            this.$('#app').innerHTML = `
+                <div class="init-loading">
+                    <div class="error-state">
+                        <p>Failed to initialize</p>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" style="margin-top: 1rem" onclick="location.reload()">
+                            Retry
+                        </button>
+                    </div>
+                </div>
             `;
         }
     }
 
     updateView() {
-        const container = this.$('#appContainer');
         const state = store.getState();
+        const app = this.$('#app');
 
         if (!state.isAuthenticated) {
-            container.innerHTML = `
-                <app-header></app-header>
-                <div class="login-wrapper">
+            // Login View
+            app.innerHTML = `
+                <div class="login-view">
                     <div class="login-card">
+                        <div class="login-header">
+                            <div class="brand" style="justify-content: center; margin-bottom: 1rem;">
+                                <div class="brand-icon">${icons.logo}</div>
+                                <span class="brand-name">Pins</span>
+                            </div>
+                            <h1>Welcome</h1>
+                            <p>Sign in with your AT Protocol identity</p>
+                        </div>
                         <login-form></login-form>
                     </div>
                 </div>
             `;
         } else {
-            container.innerHTML = `
-                <app-header></app-header>
-                <main class="main-content">
-                    <div class="dashboard">
-                        <div class="dashboard-section">
-                            <div class="section-header">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                Upload Files
-                            </div>
-                            <upload-zone></upload-zone>
-                        </div>
-                        <div class="dashboard-section">
-                            <blob-list></blob-list>
-                        </div>
+            // Dashboard View
+            app.innerHTML = `
+                <header class="header">
+                    <div class="brand">
+                        <div class="brand-icon">${icons.logo}</div>
+                        <span class="brand-name">Pins</span>
                     </div>
+                    <div class="user-area">
+                        <span class="user-handle">@${state.userHandle || 'user'}</span>
+                        <button class="btn btn-ghost btn-sm" id="signOutBtn">
+                            Sign out
+                        </button>
+                    </div>
+                </header>
+
+                <main class="dashboard">
+                    <section class="section">
+                        <upload-zone></upload-zone>
+                    </section>
+
+                    <section class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">Your Files</h2>
+                        </div>
+                        <blob-list></blob-list>
+                    </section>
                 </main>
             `;
+
+            // Sign out handler
+            this.$('#signOutBtn')?.addEventListener('click', async () => {
+                await oauthService.signOut();
+            });
         }
     }
 }
