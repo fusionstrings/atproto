@@ -1,6 +1,6 @@
 {
     "$schema": "https://cdn.jsdelivr.net/npm/wrangler/config-schema.json",
-    "name": "pins-atproto",
+    "name": "atproto",
     "main": "worker.js",
     "assets": {
         "directory": "public",
