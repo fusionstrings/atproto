@@ -1,82 +1,79 @@
-# Bluesky CID Uploader
+# Pins — AT Protocol File Storage
 
-A Deno application to upload files to Bluesky (AT Protocol) and retrieve their Content Identifier (CID).
+A lightweight, serverless web client for managing files on an AT Protocol Personal Data Server (PDS).
 
-## Features
+**Live Demo:** [https://pins-atproto.fusionstrings.workers.dev/](https://pins-atproto.fusionstrings.workers.dev/)
 
-- **OAuth 2.0 Authentication**: Secure browser-based OAuth login with Bluesky using `@atproto/oauth-client-browser`
-- **Modern UI**: Built with DaisyUI and Tailwind CSS with a beautiful dark theme
-- **Drag & Drop**: Easy file upload interface
-- **Instant CID**: Returns the CID, MIME type, and size of the uploaded blob
-- **No App Passwords**: Uses the recommended OAuth flow instead of deprecated app passwords
+## Tech Stack
 
-## Prerequisites
-
-- [Deno](https://deno.com/) installed
-- A Bluesky account
+- **Frontend:** Vanilla Web Components (Shadow DOM), CSS Variables (Linear-style theme).
+- **Auth:** `@atproto/oauth-client-browser` (PKCE + DPoP).
+- **Backend:** Cloudflare Workers (serves static assets + dynamic OAuth metadata).
+- **Storage:** IndexedDB (session persistence).
 
 ## Quick Start
 
-1. Start the server:
+### Local Development
+
+1. **Install dependencies:**
    ```bash
-   deno task start
+   npm install
    ```
 
-2. Open your browser and navigate to:
+2. **Start dev server:**
+   ```bash
+   npx wrangler dev
    ```
-   http://127.0.0.1:8000
-   ```
-   
-   > **Important**: Use `127.0.0.1` (not `localhost`) for the OAuth loopback to work correctly.
 
-3. Enter your Bluesky handle (e.g., `user.bsky.social`) and click **Sign in with OAuth**
+3. **Open App:**
+   Navigate to `http://127.0.0.1:8787`
+   > **Note:** Must use `127.0.0.1`, not `localhost`, for the OAuth loopback client to function.
 
-4. Authorize the application in the Bluesky OAuth flow
+### Deployment
 
-5. Once authenticated, drag & drop or select a file to upload
+Deploy to Cloudflare Workers:
 
-6. Copy the generated CID!
-
-## Architecture
-
-This application uses a pure browser-based OAuth flow:
-
-- **Frontend**: The `@atproto/oauth-client-browser` package handles all OAuth operations in the browser, including:
-  - Session management with IndexedDB storage
-  - PKCE and DPoP for secure token exchange
-  - Automatic token refresh
-  
-- **Backend (Deno/Hono)**: Minimal server that:
-  - Serves the static SPA
-  - Can optionally proxy blob uploads
-
-## Project Structure
-
-```
-├── server.ts           # Deno server using Hono
-├── static/
-│   └── index.html      # SPA with OAuth client
-├── deno.json           # Deno configuration
-└── README.md
+```bash
+npx wrangler deploy
 ```
 
-## How OAuth Works
+The application is origin-agnostic. It automatically detects the deployment domain and serves the correct OAuth metadata.
 
-1. User enters their handle (e.g., `alice.bsky.social`)
-2. The browser OAuth client resolves the user's PDS
-3. User is redirected to their PDS authorization server
-4. After approval, user is redirected back with an authorization code
-5. The browser client exchanges the code for tokens (using PKCE)
-6. Sessions are stored in IndexedDB and automatically refreshed
+## Architecture & OAuth Implementation
 
-## Development Notes
+This project solves the "static site OAuth" problem using a Cloudflare Worker to serve dynamic client metadata.
 
-- The OAuth client uses loopback mode for local development (`http://127.0.0.1:8000`)
-- Sessions persist in the browser's IndexedDB
-- Token refresh happens automatically
+### The Problem
+AT Protocol OAuth requires a `client_id` URL that returns JSON metadata containing the exact `redirect_uris`. Hardcoding this prevents deploying to multiple environments (preview, staging, prod) without rebuilding.
+
+### The Solution
+1. **Worker (`worker.js`)**: Intercepts requests to `/client-metadata.json`.
+2. **Dynamic Generation**: Constructs the metadata JSON using the request's `origin`.
+3. **Client (`oauth-service.js`)**:
+   - **Localhost**: Uses the special "loopback" client mode (no metadata URL needed).
+   - **Production**: Sets `client_id` to `${origin}/client-metadata.json`.
+
+### Project Structure
+
+```
+├── worker.js              # CF Worker: Serves assets & dynamic metadata
+├── wrangler.jsonc         # CF Configuration
+├── public/
+│   ├── index.html         # Entry point
+│   ├── components/        # Web Components (blob-list, upload-zone, etc.)
+│   └── js/
+│       ├── oauth-service.js # Auth logic (Loopback vs Prod switching)
+│       ├── pin-service.js   # PDS Blob interaction
+│       └── store.js         # Reactive state store
+```
+
+## Key Components
+
+- **`oauth-service.js`**: Handles the dual-mode initialization (Loopback for dev, Metadata URL for prod).
+- **`pin-service.js`**: Manages blob operations (upload, delete, list) using the authenticated agent.
+- **`store.js`**: A simple event-target based state management system.
 
 ## References
 
 - [AT Protocol OAuth Spec](https://atproto.com/specs/oauth)
-- [@atproto/oauth-client-browser](https://www.npmjs.com/package/@atproto/oauth-client-browser)
-- [OAuth Quickstart Guide](https://github.com/bluesky-social/atproto/blob/main/packages/api/OAUTH.md)
+- [@atproto/oauth-client-browser Docs](https://github.com/bluesky-social/atproto/tree/main/packages/oauth/oauth-client-browser)

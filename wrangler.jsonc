@@ -1,0 +1,10 @@
+{
+    "$schema": "https://cdn.jsdelivr.net/npm/wrangler/config-schema.json",
+    "name": "pins-atproto",
+    "main": "worker.js",
+    "assets": {
+        "directory": "public",
+        "binding": "ASSETS"
+    },
+    "compatibility_date":"2025-12-05"
+}
